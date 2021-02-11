@@ -566,6 +566,12 @@ export default {
     page(val) {
       this.pushQuery("page", val);
     },
+    totalPages(val) {
+      if (val < this.page) {
+        this.firstTime = false;
+        this.page = val;
+      }
+    },
     searchText(val) {
       if (!this.opts.searchWithButton) {
         this.pushQuery("search", val);
