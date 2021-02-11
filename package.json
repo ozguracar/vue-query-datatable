@@ -1,6 +1,6 @@
 {
   "name": "vue-query-datatable",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Simple route-driven data management plugin powered by Vue.",
   "author": {
     "name": "Ozgur Acar",

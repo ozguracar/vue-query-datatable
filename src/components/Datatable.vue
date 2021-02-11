@@ -566,15 +566,10 @@ export default {
     page(val) {
       this.pushQuery("page", val);
     },
-    totalPages(val) {
-      if (val < this.page) {
-        this.firstTime = false;
-        this.page = val;
-      }
-    },
     searchText(val) {
       if (!this.opts.searchWithButton) {
         this.pushQuery("search", val);
+        this.page = 1;
       }
     },
     selectedDate(val) {
@@ -601,6 +596,7 @@ export default {
           query[this.opts.queryPrefix + "-endDate"] = val.end;
         }
         this.$router.push({ query });
+        this.page = 1;
       },
     },
     sort: {
@@ -618,6 +614,7 @@ export default {
             : "asc";
         }
         this.$router.push({ query });
+        this.page = 1;
       },
     },
     "$route.query": {
@@ -951,6 +948,9 @@ export default {
         query[name] = value;
       }
       this.$router.push({ query });
+      if (name !== "shownRow" && name !== "page") {
+        this.page = 1;
+      }
     },
     removeQuery(name, prefix = true) {
       const query = { ...this.$route.query };
@@ -960,6 +960,9 @@ export default {
         delete query[name];
       }
       this.$router.push({ query });
+      if (name !== "shownRow" && name !== "page") {
+        this.page = 1;
+      }
     },
   },
 };

@@ -31,7 +31,7 @@ export default {
       },
       loading: false,
       options: {
-        mode: "ajax",
+        mode: "static",
         defaults: {
           search: false,
           searchText: null,
