@@ -1,328 +1,287 @@
 <template>
-  <div class="gd-row">
-    <div class="gd-lg-12">
-      <div class="card p-0">
-        <div class="table-wrapper">
-          <div class="table-title">
-            <h6 class="font-poppins text-link font-weight-500 m-0">
-              {{ opts.title }}
-            </h6>
-            <div class="table-filter">
-              <ul>
-                <li v-if="undoQuery">
-                  <button class="button-item" @click="undo">
-                    Undo <i class="ri-arrow-go-back-fill"></i>
-                  </button>
-                </li>
-                <li>
-                  <button
-                    :class="undoQuery ? 'text-success' : ''"
-                    class="button-item"
-                    @click="reset"
-                  >
-                    Reset <i class="ri-refresh-line"></i>
-                  </button>
-                </li>
-                <li>
-                  <button @click="json2excel" class="button-item">
-                    Export Current <i class="ri-file-chart-line"></i>
-                  </button>
-                  <button @click="json2excel('all')" class="button-item">
-                    Export All <i class="ri-file-chart-line"></i>
-                  </button>
-                </li>
-                <li>
-                  <button
-                    :class="filter ? 'text-success' : ''"
-                    class="button-item"
-                    @click="filter = !filter"
-                  >
-                    Filters <i class="ri-sound-module-line"></i>
-                  </button>
-                  <ul v-if="filter" class="filters-box">
-                    <li class="date">
-                      <span
-                        class="mr-10 text-dark-blue font-size-13 font-weight-500 font-poppins"
-                        >Date:</span
-                      >
-                      <button
-                        v-for="(value, name) in opts.dates"
-                        :key="name"
-                        :class="selectedDate === name ? 'text-success' : ''"
-                        class="bg-none default-select"
-                        @click="selectedDate = name"
-                      >
-                        {{ name }}
-                      </button>
-                    </li>
-                    <li class="date position-relative date-range">
-                      <span
-                        class="mr-10 text-dark-blue font-size-13 font-weight-500 font-poppins"
-                        >Date Range:
-                        <DatePicker
-                          :key="DatePickerVersion"
-                          v-model="dateRange"
-                          class="date-picker-filter"
-                          is-range
-                        >
-                          <template
-                            v-slot="{ inputEvents }"
-                            class="font-size-13 font-poppins"
-                          >
-                            <input
-                              :value="
-                                range.start
-                                  ? new Date(range.start).toLocaleString()
-                                  : null
-                              "
-                              placeholder="Start Date"
-                              readonly
-                              v-on="inputEvents.start"
-                            />
-                            <input
-                              :value="
-                                range.end
-                                  ? new Date(range.end).toLocaleString()
-                                  : null
-                              "
-                              placeholder="Finish Date"
-                              readonly
-                              v-on="inputEvents.end"
-                            />
-                          </template>
-                        </DatePicker>
-                      </span>
-                    </li>
-                    <li class="date">
-                      <span
-                        class="mr-10 text-dark-blue font-size-13 font-weight-500 font-poppins"
-                        >How Many Rows :</span
-                      >
-                      <button
-                        v-for="n in opts.shownRowNumbers"
-                        :key="'filtershownRow' + n"
-                        class="bg-none default-select"
-                        :class="n === shownRow ? 'text-success' : ''"
-                        @click="shownRow = n"
-                      >
-                        {{ n }}
-                      </button>
-                    </li>
-                    <li class="date">
-                      <span
-                        class="mr-10 text-dark-blue font-size-13 font-weight-500 font-poppins"
-                        >Select Columns:</span
-                      >
-                      <button
-                        class="bg-none default-select text-success"
-                        @click="selectAllHeads"
-                      >
-                        Select All
-                      </button>
-                      <button
-                        v-if="getFilterStatus.reverse"
-                        class="bg-none default-select"
-                        @click="reserveHeads"
-                      >
-                        Reverse
-                      </button>
-                      <ul class="date-columns-group">
-                        <li
-                          v-for="head in opts.heads"
-                          :key="'filter-head-' + head.title"
-                        >
-                          <button
-                            class="btn btn-sm rounded"
-                            :class="
-                              head.visibility
-                                ? 'btn-success-outline'
-                                : 'btn-default-outline'
-                            "
-                            @click="
-                              getFilterStatus.selectable || !head.visibility
-                                ? (head.visibility = !head.visibility)
-                                : ''
-                            "
-                          >
-                            {{ head.title }}
-                          </button>
-                        </li>
-                      </ul>
-                    </li>
-                    <li
-                      v-for="custom in opts.customFilter"
-                      :key="'query' + custom.key"
-                      class="date"
-                    >
-                      <span
-                        class="mr-10 text-dark-blue font-size-13 font-weight-500 font-poppins"
-                        >{{ custom.title }}</span
-                      >
-                      <ul class="date-columns-group">
-                        <li
-                          v-for="val in custom.values"
-                          :key="'custom-filter-' + custom.key + '-' + val.key"
-                        >
-                          <button
-                            class="btn btn-sm rounded"
-                            :class="
-                              custom.selected === val.key
-                                ? 'btn-success-outline'
-                                : ''
-                            "
-                            @click="setCustomFilter(custom, val)"
-                          >
-                            {{ val.name }}
-                          </button>
-                        </li>
-                      </ul>
-                    </li>
-                  </ul>
-                </li>
-                <li>
-                  <button
-                    v-if="!search"
-                    class="button-item"
-                    @click="search = true"
-                  >
-                    Search <i class="ri-search-line"></i>
-                  </button>
-                  <div v-if="search" class="search">
-                    <input
-                      v-model="searchText"
-                      type="text"
-                      placeholder="Search"
-                    />
-                    <button class="bg-none">
-                      <i
-                        class="ri-close-line text-danger"
-                        @click="closeSearch"
-                      ></i>
-                      <i
-                        v-if="opts.searchWithButton"
-                        class="ri-search-line"
-                        @click="setSearch"
-                      ></i>
-                    </button>
-                  </div>
-                </li>
-              </ul>
+  <div class="table-wrapper">
+    <div class="table-title">
+      <h6>{{ opts.title }} Deneme</h6>
+      <div class="table-filter">
+        <button class="bg-none table-menu" @click="mobileMenu = !mobileMenu">
+          <i class="ri-menu-line"></i>
+        </button>
+        <ul v-if="mobileMenu" class="list-propery">
+          <li v-if="undoQuery">
+            <button class="button-item" @click="undo">
+              Undo <i class="ri-arrow-go-back-fill"></i>
+            </button>
+          </li>
+          <li>
+            <button
+              :class="undoQuery ? 'text-success' : ''"
+              class="button-item"
+              @click="reset"
+            >
+              Reset <i class="ri-refresh-line"></i>
+            </button>
+          </li>
+          <li class="exports-box">
+            <button
+              @click="exports = !exports"
+              :class="exports ? 'text-success' : ''"
+              class="button-item"
+            >
+              Exports <i class="ri-file-chart-line"></i>
+            </button>
+            <div v-if="exports" class="exports-box-submenu">
+              <button @click="json2excel" class="button-item">
+                <i class="ri-file-chart-line"></i> Export Current Data
+              </button>
+              <button @click="json2excel('all')" class="button-item">
+                <i class="ri-file-chart-line"></i> Export All Data
+              </button>
             </div>
-          </div>
-          <div class="table-body">
-            <div class="table-responsive">
-              <Loader v-if="loading" />
-              <table v-if="getRows.length">
-                <thead>
-                  <tr>
-                    <th v-for="(head, name) in getHeads" :key="head.title">
-                      {{ head.title }}
-                      <span
-                        v-if="head.sortable"
-                        class="sort-icon"
-                        @click="sortTable(name)"
-                      >
-                        <i
-                          v-if="
-                            sort.key !== name ||
-                            !sort.type ||
-                            sort.type === 'asc'
-                          "
-                          class="ri-arrow-drop-up-fill ri-xl"
-                        ></i>
-                        <i
-                          v-if="
-                            sort.key !== name ||
-                            !sort.type ||
-                            sort.type === 'desc'
-                          "
-                          class="ri-arrow-drop-down-fill ri-xl"
-                        ></i>
-                      </span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="row in getRows" :key="row[opts.rowId]">
-                    <td
-                      v-for="(value, keyName) in getHeads"
-                      :key="opts.rowId + keyName"
+          </li>
+          <li>
+            <button
+              :class="filter ? 'text-success' : ''"
+              class="button-item"
+              @click="filter = !filter"
+            >
+              Filters <i class="ri-sound-module-line"></i>
+            </button>
+            <ul v-if="filter" class="filters-box">
+              <li @click="filter = false" class="filter-close">
+                <i class="ri-close-circle-line"></i>
+              </li>
+              <li class="date">
+                <span class="filter-title">Date: </span>
+                <button
+                  v-for="(value, name) in opts.dates"
+                  :key="name"
+                  :class="selectedDate === name ? 'text-success' : ''"
+                  class="bg-none default-select"
+                  @click="selectedDate = name"
+                >
+                  {{ name }}
+                </button>
+              </li>
+              <li class="date position-relative date-range">
+                <span class="filter-title d-flex"
+                  >Date Range:
+                  <DatePicker
+                    :key="DatePickerVersion"
+                    v-model="dateRange"
+                    class="date-picker-filter"
+                    is-range
+                  >
+                    <template
+                      v-slot="{ inputEvents }"
+                      class="font-size-13 font-poppins"
                     >
-                      <slot
-                        :name="'column-' + keyName"
-                        :column="row[keyName]"
-                        :row="row"
-                        >{{ row[keyName] }}</slot
-                      >
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-              <div v-else class="text-center table-blank xs-font-size-13">
-                There is no data
-              </div>
-            </div>
-          </div>
-          <div class="table-bottom">
-            <div class="left">
-              <span class="font-size-13 font-poppins text-hoki-grey"
-                >Number of rows:</span
-              >
-              <select v-model="shownRow">
-                <option
+                      <input
+                        :value="
+                          range.start
+                            ? new Date(range.start).toLocaleString()
+                            : null
+                        "
+                        placeholder="Start Date"
+                        readonly
+                        v-on="inputEvents.start"
+                      />
+                      <input
+                        :value="
+                          range.end
+                            ? new Date(range.end).toLocaleString()
+                            : null
+                        "
+                        placeholder="Finish Date"
+                        readonly
+                        v-on="inputEvents.end"
+                      />
+                    </template>
+                  </DatePicker>
+                </span>
+              </li>
+              <li class="date">
+                <span class="filter-title">How Many Rows: </span>
+                <button
                   v-for="n in opts.shownRowNumbers"
-                  :key="'shownRow' + n"
-                  :value="n"
+                  :key="'filtershownRow' + n"
+                  class="bg-none default-select"
+                  :class="n === shownRow ? 'text-success' : ''"
+                  @click="shownRow = n"
                 >
                   {{ n }}
-                </option>
-              </select>
-              <span
-                v-if="opts.visibility.totalRows"
-                class="font-size-13 xs-font-size-12 font-poppins text-hoki-grey"
-              >
-                of {{ opts.totalRows }}
-              </span>
-            </div>
-            <div class="center">
-              <ul>
-                <li v-if="getStartPage.number > 1" class="text-cascade-grey">
-                  ...
-                </li>
-                <li
-                  v-for="n in getStartPage.total"
-                  :key="'page' + n"
-                  :class="
-                    n + getStartPage.number - 1 === page
-                      ? 'text-dark-blue'
-                      : 'text-cascade-grey'
-                  "
-                  class="cursor-pointer"
-                  @click="page = n + getStartPage.number - 1"
+                </button>
+              </li>
+              <li class="date">
+                <span class="filter-title">Select Columns: </span>
+                <button class="bg-none" @click="selectAllHeads">
+                  Select All
+                </button>
+                <button
+                  v-if="getFilterStatus.reverse"
+                  class="bg-none default-select"
+                  @click="reserveHeads"
                 >
-                  {{ n + getStartPage.number - 1 }}
-                </li>
-                <li v-if="page + 5 < totalPages" class="text-cascade-grey">
-                  ...
-                </li>
-              </ul>
-            </div>
-            <div class="right">
-              <span
-                :class="page > 1 ? 'text-hoki-grey' : 'text-cascade-grey'"
-                @click="page > 1 ? page-- : ''"
-                ><i class="ri-arrow-left-s-fill"></i> Previus Page</span
+                  Reverse
+                </button>
+                <ul class="date-columns-group">
+                  <li
+                    v-for="head in opts.heads"
+                    :key="'filter-head-' + head.title"
+                  >
+                    <button
+                      class="btn"
+                      :class="head.visibility ? 'btn-success' : 'btn-default'"
+                      @click="
+                        getFilterStatus.selectable || !head.visibility
+                          ? (head.visibility = !head.visibility)
+                          : ''
+                      "
+                    >
+                      {{ head.title }}
+                    </button>
+                  </li>
+                </ul>
+              </li>
+              <li
+                v-for="custom in opts.customFilter"
+                :key="'query' + custom.key"
+                class="date"
               >
-              <span
-                :class="
-                  page < totalPages ? 'text-hoki-grey' : 'text-cascade-grey'
-                "
-                @click="page < totalPages ? page++ : ''"
-                >Next Page <i class="ri-arrow-right-s-fill"></i
-              ></span>
+                <span class="filter-title">{{ custom.title }} </span>
+                <ul class="date-columns-group">
+                  <li
+                    v-for="val in custom.values"
+                    :key="'custom-filter-' + custom.key + '-' + val.key"
+                  >
+                    <button
+                      class="btn"
+                      :class="
+                        custom.selected === val.key
+                          ? 'btn-success'
+                          : 'btn-default'
+                      "
+                      @click="setCustomFilter(custom, val)"
+                    >
+                      {{ val.name }}
+                    </button>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="search-box">
+            <button v-if="!search" class="button-item" @click="search = true">
+              Search <i class="ri-search-line"></i>
+            </button>
+            <div v-if="search" class="search">
+              <input v-model="searchText" type="text" placeholder="Search" />
+              <button class="bg-none">
+                <i class="ri-close-line text-danger" @click="closeSearch"></i>
+                <i
+                  v-if="opts.searchWithButton"
+                  class="ri-search-line"
+                  @click="setSearch"
+                ></i>
+              </button>
             </div>
-          </div>
-        </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div class="table-body">
+      <div class="table-responsive">
+        <Loader v-if="loading" />
+        <table v-if="getRows.length">
+          <thead>
+            <tr>
+              <th v-for="(head, name) in getHeads" :key="head.title">
+                {{ head.title }}
+                <span
+                  v-if="head.sortable"
+                  class="sort-icon"
+                  @click="sortTable(name)"
+                >
+                  <i
+                    v-if="
+                      sort.key !== name || !sort.type || sort.type === 'asc'
+                    "
+                    class="ri-arrow-drop-up-fill ri-xl"
+                  ></i>
+                  <i
+                    v-if="
+                      sort.key !== name || !sort.type || sort.type === 'desc'
+                    "
+                    class="ri-arrow-drop-down-fill ri-xl"
+                  ></i>
+                </span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in getRows" :key="row[opts.rowId]">
+              <td
+                v-for="(value, keyName) in getHeads"
+                :key="opts.rowId + keyName"
+              >
+                <slot
+                  :name="'column-' + keyName"
+                  :column="row[keyName]"
+                  :row="row"
+                  >{{ row[keyName] }}</slot
+                >
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-else class="text-center table-blank">There is no data</div>
+      </div>
+    </div>
+    <div class="table-bottom">
+      <div class="left">
+        <span class="rows-number">Number of rows:</span>
+        <select v-model="shownRow">
+          <option
+            v-for="n in opts.shownRowNumbers"
+            :key="'shownRow' + n"
+            :value="n"
+          >
+            {{ n }}
+          </option>
+        </select>
+        <span v-if="opts.visibility.totalRows" class="of-rows">
+          of {{ data.length }}
+        </span>
+      </div>
+      <div class="center">
+        <ul>
+          <li v-if="getStartPage.number > 1" class="text-cascade-grey">...</li>
+          <li
+            v-for="n in getStartPage.total"
+            :key="'page' + n"
+            :class="
+              n + getStartPage.number - 1 === page
+                ? 'active'
+                : 'text-cascade-grey'
+            "
+            class="cursor-pointer"
+            @click="page = n + getStartPage.number - 1"
+          >
+            {{ n + getStartPage.number - 1 }}
+          </li>
+          <li v-if="page + 5 < totalPages" class="text-cascade-grey">...</li>
+        </ul>
+      </div>
+      <div class="right">
+        <span
+          :class="page > 1 ? 'text-hoki-grey' : 'text-cascade-grey'"
+          @click="page > 1 ? page-- : ''"
+          ><i class="ri-arrow-left-s-fill"></i> Previus Page</span
+        >
+        <span
+          :class="page < totalPages ? 'text-hoki-grey' : 'text-cascade-grey'"
+          @click="page < totalPages ? page++ : ''"
+          >Next Page <i class="ri-arrow-right-s-fill"></i
+        ></span>
       </div>
     </div>
   </div>
@@ -332,6 +291,7 @@ import DatePicker from "v-calendar/lib/components/date-picker.umd";
 import * as FileSaver from "file-saver";
 import * as XLSX from "xlsx";
 import Loader from "./Loader";
+import "../assets/fonts/remixicon.css";
 import "../assets/style.css";
 class IWorkBook {
   constructor(sheetNames, sheets) {
@@ -366,6 +326,8 @@ export default {
   data() {
     return {
       DatePickerVersion: 0,
+      mobileMenu: true,
+      exports: false,
       filter: false,
       search: false,
       searchText: null,
@@ -674,7 +636,7 @@ export default {
         } else {
           this.$emit("formatData", {
             type: "all",
-            data: JSON.parse(JSON.stringify(this.data)),
+            data: JSON.parse(JSON.stringify(this.data.rows)),
             heads: this.getHeads,
             exportData: this.exportExcel,
           });
@@ -933,3 +895,1069 @@ export default {
   },
 };
 </script>
+<style scoped>
+html,
+body,
+div,
+span,
+applet,
+object,
+iframe,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+blockquote,
+pre,
+a,
+abbr,
+acronym,
+address,
+big,
+cite,
+code,
+del,
+dfn,
+img,
+ins,
+kbd,
+q,
+s,
+samp,
+small,
+strike,
+sub,
+sup,
+tt,
+var,
+dl,
+dt,
+dd,
+ol,
+ul,
+li,
+fieldset,
+form,
+label,
+legend,
+input,
+select,
+textarea,
+button,
+table,
+caption,
+tbody,
+tfoot,
+thead,
+tr,
+th,
+td,
+article,
+aside,
+canvas,
+details,
+embed,
+figure,
+figcaption,
+footer,
+header,
+hgroup,
+menu,
+nav,
+output,
+ruby,
+section,
+summary,
+time,
+mark,
+audio,
+video {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-size: 100%;
+  vertical-align: baseline;
+}
+
+article,
+aside,
+details,
+figcaption,
+figure,
+footer,
+header,
+hgroup,
+menu,
+nav,
+section {
+  display: block;
+}
+
+body {
+  line-height: 1;
+}
+
+ol,
+ul {
+  list-style: none;
+}
+
+blockquote,
+q {
+  quotes: none;
+}
+
+blockquote:before,
+blockquote:after,
+q:before,
+q:after {
+  content: "";
+  content: none;
+}
+
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+a {
+  text-decoration: none;
+}
+
+img {
+  border: 0;
+}
+
+:focus {
+  outline: 0;
+}
+
+.clear {
+  clear: both;
+}
+
+*,
+::after,
+::before {
+  box-sizing: border-box;
+}
+
+.table-wrapper {
+  width: 100%;
+  display: -webkit-box;
+  display: -moz-box;
+  display: -ms-flexbox;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-direction: normal;
+  -webkit-box-orient: vertical;
+  -moz-box-direction: normal;
+  -moz-box-orient: vertical;
+  flex-direction: column;
+  -webkit-flex-direction: column;
+  -ms-flex-direction: column;
+  align-items: flex-start;
+  -webkit-box-align: start;
+  -moz-box-align: start;
+  -ms-flex-align: start;
+  font-family: var(--vd-standart-font);
+  font-size: 14px;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.table-wrapper button {
+  font-family: var(--vd-standart-font);
+}
+
+.table-wrapper .text-success {
+  color: var(--vd-success) !important;
+}
+
+.table-wrapper .bg-none {
+  background: none;
+}
+
+.table-wrapper input {
+  font-family: var(--vd-standart-font);
+}
+
+.table-wrapper.table-wrapper-single .table-title {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.table-title {
+  width: 100%;
+  display: -webkit-box;
+  display: -moz-box;
+  display: -ms-flexbox;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-pack: justify;
+  -moz-box-pack: justify;
+  -ms-flex-pack: justify;
+  justify-content: space-between;
+  -webkit-justify-content: space-between;
+  padding: 20px 30px;
+}
+
+.table-title h6 {
+  font-weight: 500;
+  color: var(--vd-flat-black);
+}
+
+.table-title.table-title-single {
+  -webkit-box-pack: end;
+  -moz-box-pack: end;
+  -ms-flex-pack: end;
+  justify-content: end;
+  -webkit-justify-content: end;
+  border: 1px solid var(--vd-grey);
+  border-bottom-width: 0;
+}
+
+.table-title.table-title-single .table-menu {
+  top: -5px;
+}
+
+.table-menu {
+  display: none;
+}
+
+.table-title .table-filter {
+  display: -webkit-box;
+  display: -moz-box;
+  display: -ms-flexbox;
+  display: -webkit-flex;
+  display: flex;
+  position: relative;
+}
+
+.table-title .table-filter .exports-box {
+  position: relative;
+}
+
+.table-title .table-filter .exports-box .exports-box-submenu {
+  position: absolute;
+  width: 200px;
+  padding: 15px;
+  background: var(--vd-white);
+  border-radius: 10px;
+  position: absolute;
+  top: 35px;
+  right: 0;
+  flex-direction: column;
+  justify-content: left;
+  align-items: end;
+  box-shadow: 0px 0px 10px 0px var(--vd-shadow);
+  -webkit-box-shadow: 0px 0px 10px 0px var(--vd-shadow);
+  -moz-box-shadow: 0px 0px 10px 0px var(--vd-shadow);
+  z-index: 1;
+}
+
+.table-title .table-filter .exports-box .exports-box-submenu button {
+  margin-bottom: 10px;
+}
+
+.table-title .table-filter .exports-box .exports-box-submenu button:last-child {
+  margin-bottom: 0;
+}
+
+.table-title .table-filter .exports-box .exports-box-submenu button i {
+  margin-right: 5px;
+}
+
+.table-title .table-filter ul {
+  display: -webkit-box;
+  display: -moz-box;
+  display: -ms-flexbox;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-align: center;
+  -moz-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  -webkit-box-pack: center;
+  -moz-box-pack: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+  -webkit-justify-content: center;
+}
+
+.table-title .table-filter ul li {
+  margin-right: 20px;
+}
+
+.table-title .table-filter ul li:last-child {
+  margin-right: 0;
+}
+
+.table-title .table-filter ul li.reports-box-button {
+  position: relative;
+}
+
+.table-title .table-filter ul li.close-list {
+  text-align: right;
+  display: none;
+}
+
+.table-title .table-filter ul li .filter-title {
+  font-size: 13px;
+  color: var(--vd-black);
+  margin-right: 5px;
+}
+
+.table-title .table-filter ul li .filter-title.d-flex {
+  display: -webkit-box;
+  display: -moz-box;
+  display: -ms-flexbox;
+  display: -webkit-flex;
+  display: flex;
+}
+
+.table-title .table-filter ul li .button-item {
+  display: -webkit-box;
+  display: -moz-box;
+  display: -ms-flexbox;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-align: center;
+  -moz-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  transition: 1s all;
+  -webkit-transition: 1s all;
+  -moz-transition: 1s all;
+  -ms-transition: 1s all;
+  -o-transition: 1s all;
+  background: none;
+  color: var(--vd-cascade-grey);
+  font-family: var(--vd-standart-font);
+  font-weight: 400;
+  height: 20px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.table-title .table-filter ul li .button-item i {
+  margin-left: 5px;
+}
+
+.table-title .table-filter ul li .search {
+  position: relative;
+}
+
+.table-title .table-filter ul li .search input {
+  height: 30px;
+  background: var(--vd-grey);
+  font-size: 12px;
+  font-family: var(--vd-standart-font);
+  font-weight: 500;
+  color: var(--vd-black);
+  padding: 0 10px;
+}
+
+.table-title .table-filter ul li .search input::-webkit-input-placeholder {
+  color: var(--vd-dark-blue);
+}
+
+.table-title .table-filter ul li .search input::-moz-placeholder {
+  color: var(--vd-dark-blue);
+}
+
+.table-title .table-filter ul li .search input:-ms-input-placeholder {
+  color: var(--vd-dark-blue);
+}
+
+.table-title .table-filter ul li .search input:-moz-placeholder {
+  color: var(--vd-dark-blue);
+}
+
+.table-title .table-filter ul li .search input::placeholder {
+  color: var(--vd-dark-blue);
+}
+
+.table-title .table-filter ul li .search button {
+  position: absolute;
+  right: 10px;
+  top: 2px;
+  height: 100%;
+  color: var(--vd-danger);
+  cursor: pointer;
+}
+
+.table-title .table-filter ul li .filters-box {
+  width: 500px;
+  padding: 30px;
+  background: var(--vd-white);
+  border-radius: 10px;
+  position: absolute;
+  top: 35px;
+  right: -30px;
+  -webkit-box-direction: normal;
+  -webkit-box-orient: vertical;
+  -moz-box-direction: normal;
+  -moz-box-orient: vertical;
+  -webkit-flex-direction: column;
+  -ms-flex-direction: column;
+  flex-direction: column;
+  -webkit-box-pack: left;
+  -moz-box-pack: left;
+  -ms-flex-pack: left;
+  -webkit-justify-content: left;
+  justify-content: left;
+  -webkit-box-align: end;
+  -moz-box-align: end;
+  -ms-flex-align: end;
+  -webkit-align-items: end;
+  align-items: end;
+  box-shadow: 0px 0px 10px 0px var(--vd-shadow);
+  -webkit-box-shadow: 0px 0px 10px 0px var(--vd-shadow);
+  -moz-box-shadow: 0px 0px 10px 0px var(--vd-shadow);
+  z-index: 1;
+  background: var(--vd-white);
+}
+
+.table-title .table-filter ul li .filters-box .filter-close {
+  display: none;
+}
+
+.table-title .table-filter ul li .filters-box.reports-box {
+  width: 300px;
+  right: 0;
+}
+
+.table-title .table-filter ul li .filters-box li {
+  width: 100%;
+  border-bottom: 1px solid var(--vd-light-info);
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  text-align: left;
+}
+
+.table-title .table-filter ul li .filters-box li:last-child {
+  border-bottom: none;
+}
+
+.table-title .table-filter ul li .filters-box li.date.date-range {
+  display: -webkit-box;
+  display: -moz-box;
+  display: -ms-flexbox;
+  display: -webkit-flex;
+  display: flex;
+  position: relative;
+}
+
+.table-title .table-filter ul li .filters-box li.date.date-range input {
+  flex: auto;
+}
+
+.table-title
+  .table-filter
+  ul
+  li
+  .filters-box
+  li.date.date-range
+  .date-range-clear {
+  position: absolute;
+  right: 0;
+  top: calc(50% - 10px);
+  color: var(--vd-danger);
+  font-size: 17px;
+}
+
+.table-title .table-filter ul li .filters-box li.date .date-columns-group {
+  display: -webkit-box;
+  display: -moz-box;
+  display: -ms-flexbox;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: row;
+  -ms-flex-direction: row;
+  flex-direction: row;
+  -webkit-box-pack: left;
+  -moz-box-pack: left;
+  -ms-flex-pack: left;
+  -webkit-justify-content: left;
+  justify-content: left;
+  overflow-x: scroll;
+  margin-top: 10px;
+  padding-bottom: 10px;
+}
+
+.table-title .table-filter ul li .filters-box li.date .date-columns-group .btn {
+  padding: 5px 10px;
+  background: none;
+  border-radius: 30px;
+  font-size: 13px;
+  border: 2px solid transparent;
+  color: var(--vd-cascade-grey);
+  cursor: pointer;
+}
+
+.table-title
+  .table-filter
+  ul
+  li
+  .filters-box
+  li.date
+  .date-columns-group
+  .btn.btn-success {
+  border-color: var(--vd-success);
+}
+
+.table-title
+  .table-filter
+  ul
+  li
+  .filters-box
+  li.date
+  .date-columns-group
+  .btn.btn-default {
+  border-color: var(--vd-grey-v-2);
+}
+
+.table-title
+  .table-filter
+  ul
+  li
+  .filters-box
+  li.date
+  .date-columns-group::-webkit-scrollbar-track {
+  -webkit-box-shadow: none;
+  box-shadow: none;
+  background-color: var(--vd-grey-v-2);
+  border-radius: 10px;
+  opacity: 0;
+}
+
+.table-title
+  .table-filter
+  ul
+  li
+  .filters-box
+  li.date
+  .date-columns-group::-webkit-scrollbar {
+  width: 3px;
+  height: 4px;
+  background-color: var(--vd-grey-v-2);
+  opacity: 0;
+}
+
+.table-title
+  .table-filter
+  ul
+  li
+  .filters-box
+  li.date
+  .date-columns-group::-webkit-scrollbar-thumb {
+  border-radius: 10px;
+  height: 4px;
+  background-color: var(--vd-cascade-grey);
+}
+
+.table-title .table-filter ul li .filters-box li.date .date-columns-group li {
+  -webkit-box: none;
+  -moz-box: none;
+  -webkit-flex: none;
+  -ms-flex: none;
+  flex: none;
+  width: inherit;
+  border: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+  margin-right: 0;
+}
+
+.table-title
+  .table-filter
+  ul
+  li
+  .filters-box
+  li.date
+  .date-columns-group
+  li
+  button {
+  margin-right: 10px;
+}
+
+.table-title .table-filter ul li .filters-box li.date .date-picker-filter {
+  z-index: 1;
+  display: flex;
+}
+
+.table-title .table-filter ul li .filters-box li.date button.default-select {
+  font-family: var(--vd-standart-font);
+  color: var(--vd-dark-blue);
+  font-size: 13px;
+  margin-right: 10px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.table-title
+  .table-filter
+  ul
+  li
+  .filters-box
+  li.date
+  button.default-select:last-child {
+  margin-right: 0;
+}
+
+.table-body {
+  width: 100%;
+  position: relative;
+}
+
+.table-body .table-blank {
+  min-height: 60vh;
+  display: -webkit-box;
+  display: -moz-box;
+  display: -ms-flexbox;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-align: center;
+  -moz-box-align: center;
+  -ms-flex-align: center;
+  -webkit-align-items: center;
+  align-items: center;
+  -webkit-box-pack: center;
+  -moz-box-pack: center;
+  -ms-flex-pack: center;
+  -webkit-justify-content: center;
+  justify-content: center;
+  text-align: center;
+  font-family: var(--vd-standart-font);
+  font-weight: 400;
+  color: var(--black);
+  font-size: 16px;
+}
+
+.table-body table {
+  width: 100%;
+  text-align: left;
+}
+
+.table-body table th,
+td {
+  padding: 20px 30px;
+  font-family: var(--vd-standart-font);
+  font-weight: 500;
+  border: 1px solid var(--vd-grey);
+  color: var(--vd-flat-black);
+  font-size: 13px;
+}
+
+.table-body table thead {
+  background-color: var(--vd-grey-v-4);
+}
+
+.table-body table thead tr th {
+  color: var(--vd-dark-blue);
+  font-size: 14px;
+}
+
+.table-body table thead tr th .sort-icon {
+  width: 30px;
+  display: inline-table;
+  vertical-align: middle;
+}
+
+.table-body table thead tr th .sort-icon i {
+  line-height: 0.35;
+  display: block;
+}
+
+.table-body table body {
+  background-color: var(--vd-white);
+}
+
+.table-body table body tr {
+  transition: 1s all;
+  -webkit-transition: 1s all;
+  -moz-transition: 1s all;
+  -ms-transition: 1s all;
+  -o-transition: 1s all;
+}
+
+.table-body table body tr:hover {
+  background-color: var(--vd-grey-v-4);
+}
+
+.table-body table body tr td {
+  border: 1px solid var(--vd-grey);
+  color: var(--vd-flat-black);
+  font-size: 13px;
+}
+
+.table-body table body tr td.table-button-group {
+  vertical-align: middle;
+  text-align: right;
+}
+
+.table-bottom {
+  width: 100%;
+  padding: 20px 30px;
+  background-color: var(--vd-grey-v-4);
+  display: -webkit-box;
+  display: -moz-box;
+  display: -ms-flexbox;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-pack: justify;
+  -moz-box-pack: justify;
+  -ms-flex-pack: justify;
+  -webkit-justify-content: space-between;
+  justify-content: space-between;
+}
+
+.table-bottom .left {
+  display: -webkit-box;
+  display: -moz-box;
+  display: -ms-flexbox;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-align: center;
+  -moz-box-align: center;
+  -ms-flex-align: center;
+  -webkit-align-items: center;
+  align-items: center;
+}
+
+.table-bottom .left .rows-number {
+  color: var(--vd-cascade-grey);
+  font-size: 13px;
+}
+
+.table-bottom .left select {
+  background: none;
+  font-family: var(--vd-standart-font);
+  margin-left: 5px;
+  font-weight: 500;
+  font-size: 13px;
+  border: 1px solid var(--vd-grey-v-2);
+  color: var(--vd-flat-black);
+  border-radius: 5px;
+  margin-right: 5px;
+}
+
+.table-bottom .left .of-rows {
+  color: var(--vd-cascade-grey);
+  font-size: 13px;
+}
+
+.table-bottom .center {
+  display: -webkit-box;
+  display: -moz-box;
+  display: -ms-flexbox;
+  display: -webkit-flex;
+  display: flex;
+}
+
+.table-bottom .center ul {
+  display: -webkit-box;
+  display: -moz-box;
+  display: -ms-flexbox;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-wrap: wrap;
+  -ms-flex-wrap: wrap;
+  flex-wrap: wrap;
+  -webkit-box-pack: center;
+  -moz-box-pack: center;
+  -ms-flex-pack: center;
+  -webkit-justify-content: center;
+  justify-content: center;
+}
+
+.table-bottom .center ul li {
+  margin-right: 10px;
+  cursor: pointer;
+  font-weight: 500;
+  font-family: var(--vd-standart-font);
+  color: var(--vd-cascade-grey);
+  font-size: 14px;
+}
+
+.table-bottom .center ul li.active {
+  color: var(--vd-dark-blue);
+}
+
+.table-bottom .right {
+  display: -webkit-box;
+  display: -moz-box;
+  display: -ms-flexbox;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-pack: center;
+  -moz-box-pack: center;
+  -ms-flex-pack: center;
+  -webkit-justify-content: center;
+  justify-content: center;
+  -webkit-box-align: center;
+  -moz-box-align: center;
+  -ms-flex-align: center;
+  -webkit-align-items: center;
+  align-items: center;
+}
+
+.table-bottom .right span {
+  display: -webkit-box;
+  display: -moz-box;
+  display: -ms-flexbox;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-pack: center;
+  -moz-box-pack: center;
+  -ms-flex-pack: center;
+  -webkit-justify-content: center;
+  justify-content: center;
+  -webkit-box-align: center;
+  -moz-box-align: center;
+  -ms-flex-align: center;
+  -webkit-align-items: center;
+  align-items: center;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: var(--standart-font);
+  font-weight: 500;
+  margin-right: 10px;
+  color: var(--vd-dark-blue);
+}
+
+.table-bottom .right span:hover {
+  opacity: 0.7;
+}
+
+.table-bottom .right span:last-child {
+  margin-right: 0;
+}
+
+@media screen and (max-width: 1600px) {
+  .table-body table th,
+  td {
+    padding: 13px 8px;
+  }
+  .table-body table thead tr th {
+    font-size: 13px;
+  }
+  .table-body table body tr td {
+    font-size: 12px;
+  }
+}
+
+@media screen and (max-width: 1030px) {
+  .table-title {
+    padding: 20px;
+    position: relative;
+    z-index: 2;
+  }
+  .table-menu {
+    display: block;
+    position: absolute;
+    right: 0;
+    top: 5px;
+  }
+  .table-title .table-filter {
+    border-radius: 5px;
+    justify-content: center;
+    width: 100%;
+    position: absolute;
+    right: 20px;
+    top: 20px;
+  }
+  .table-title .table-filter ul.list-propery {
+    position: absolute;
+    right: 0;
+    top: 30px;
+    display: block;
+    background-color: var(--vd-white);
+    box-shadow: 0px 0px 14px 0px var(--vd-shadow);
+    -webkit-box-shadow: 0px 0px 14px 0px var(--vd-shadow);
+    -moz-box-shadow: 0px 0px 14px 0px var(--vd-shadow);
+    display: block;
+  }
+  .table-title .table-filter ul li {
+    margin-right: 0;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--vd-grey);
+  }
+  .table-title .table-filter ul li.search-box {
+    position: relative;
+  }
+  .table-title .table-filter ul li.close-list {
+    display: block;
+  }
+  .table-title .table-filter ul li .button-item {
+    font-size: 12px;
+  }
+  .table-title .table-filter ul li .search {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .table-title .table-filter ul li .search input {
+    width: 190px;
+    height: 45px;
+    position: absolute;
+    color: var(--vd-dark-blue);
+    right: 0;
+    top: 0;
+  }
+  .table-title .table-filter ul li .search button {
+    top: 14px;
+  }
+  .table-title .table-filter ul li .filters-box {
+    width: 300px;
+    right: 0;
+    top: 0;
+    padding: 10px;
+  }
+  .table-title .table-filter ul li .filters-box li {
+    padding: 0;
+  }
+  .table-title .table-filter ul li .filters-box li.date.date-range {
+    -webkit-box-pack: center;
+    -moz-box-pack: center;
+    -ms-flex-pack: center;
+    -webkit-justify-content: center;
+    justify-content: center;
+    -webkit-box-align: center;
+    -moz-box-align: center;
+    -ms-flex-align: center;
+    -webkit-align-items: center;
+    align-items: center;
+  }
+  .table-title
+    .table-filter
+    ul
+    li
+    .filters-box
+    li.date
+    .date-columns-group
+    li
+    button {
+    font-size: 10px;
+  }
+  .table-title .table-filter ul li .filters-box li.date button.default-select {
+    margin-right: 5px;
+  }
+  .table-body table th,
+  td {
+    padding: 10px 8px;
+    font-size: 12px;
+  }
+  .table-body table thead tr th {
+    font-size: 13px;
+  }
+  .table-body table body tr td {
+    font-size: 10px;
+  }
+  .table-title .table-filter ul li .filters-box .filter-close {
+    display: block;
+    text-align: right;
+    color: var(--vd-danger);
+    font-size: 20px;
+  }
+  .table-title .table-filter ul li .filter-title.d-flex {
+    -webkit-box-direction: normal;
+    -webkit-box-orient: vertical;
+    -moz-box-direction: normal;
+    -moz-box-orient: vertical;
+    -webkit-flex-direction: column;
+    -ms-flex-direction: column;
+    flex-direction: column;
+    width: 100%;
+  }
+  .table-title .table-filter ul li .filters-box li.date.date-range input {
+    flex: 1;
+    width: 50%;
+  }
+  .table-title .table-filter ul li .filters-box li.date .date-picker-filter {
+    padding: 0;
+    margin-top: 5px;
+  }
+  .table-title
+    .table-filter
+    ul
+    li
+    .filters-box
+    li.date
+    .date-columns-group
+    .btn {
+    font-size: 10px;
+    padding: 5px 10px;
+  }
+}
+
+@media screen and (max-width: 640px) {
+  .table-body table th,
+  td {
+    min-width: 200px;
+  }
+  .table-body table th {
+    font-size: 12px;
+  }
+  .table-body table td {
+    font-size: 11px;
+  }
+  .table-bottom {
+    -webkit-box-direction: normal;
+    -webkit-box-orient: vertical;
+    -moz-box-direction: normal;
+    -moz-box-orient: vertical;
+    -webkit-flex-direction: column;
+    -ms-flex-direction: column;
+    flex-direction: column;
+  }
+  .table-bottom .left {
+    -webkit-box-pack: center;
+    -moz-box-pack: center;
+    -ms-flex-pack: center;
+    -webkit-justify-content: center;
+    justify-content: center;
+    margin-bottom: 10px;
+  }
+  .table-bottom .center {
+    -webkit-box-pack: center;
+    -moz-box-pack: center;
+    -ms-flex-pack: center;
+    -webkit-justify-content: center;
+    justify-content: center;
+    text-align: center;
+    margin: 0 0 5px 0;
+  }
+  .table-bottom .center ul li {
+    padding: 5px 10px;
+    background-color: var(--vd-white);
+    border-radius: 3px;
+    margin-bottom: 5px;
+    min-width: 35px;
+  }
+}
+
+@media screen and (max-width: 350px) {
+  .table-bottom .right span {
+    font-size: 10px;
+  }
+}
+
+.date-picker-filter {
+  top: 0px !important;
+  padding: 0 5px;
+}
+
+.date-picker-filter input {
+  color: #95a5a6;
+}
+</style>

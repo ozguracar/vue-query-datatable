@@ -6,6 +6,7 @@
       :loading="loading"
       @formatData="formatData($event)"
       @getAllData="getAllData"
+      @refresh="refreshData($event)"
     >
       <template #column-name="{ column, row }">
         {{ row.surname }} {{ column }}
@@ -30,7 +31,6 @@ export default {
       },
       loading: false,
       options: {
-        mode: "ajax",
         heads: {
           name: {
             title: "Name",
@@ -101,7 +101,21 @@ export default {
     },
     getAllData({ heads, set }) {
       console.log(heads);
-      set(data.docs);
+      this.loading = true;
+      setTimeout(() => {
+        set(data.docs);
+        this.loading = false;
+      }, 2000);
+    },
+    refreshData(query) {
+      console.log(query);
+      // startDate
+      // endDate
+      // sort
+      // sortType
+      // shownRow
+      // page
+      // search
     },
   },
 };

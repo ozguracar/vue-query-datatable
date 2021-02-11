@@ -52,7 +52,6 @@ export default {
   top: 0;
   left: 0;
   z-index: 1;
-  box-shadow: 0px 0px 12px 1px rgba(0, 0, 0, 0.07059);
   display: flex;
   justify-content: center;
   align-items: center;

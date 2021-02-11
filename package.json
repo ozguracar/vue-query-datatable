@@ -1,12 +1,25 @@
 {
-  "name": "vue-orgchart",
+  "name": "vue-query-datatable",
   "version": "0.1.0",
-  "private": true,
+  "description": "Simple route-driven data management plugin powered by Vue.",
+  "author": {
+    "name": "Ozgur Acar",
+    "email": "ozgurraca@gmail.com"
+  },
+  "private": false,
+  "license": "MIT",
+  "main": "./dist/vue-query-datatable.umd.js",
+  "repository": "https://github.com/ozguracar/vue-query-datatable",
+  "bugs": "https://github.com/ozguracar/vue-query-datatable/issues",
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
-    "lint": "vue-cli-service lint"
+    "lint": "vue-cli-service lint",
+    "build-library": "vue-cli-service build --target lib --name vue-query-datatable ./src/install.js"
   },
+  "files": [
+    "dist"
+  ],
   "dependencies": {
     "core-js": "^3.6.5",
     "file-saver": "^2.0.5",
@@ -42,5 +55,10 @@
     "> 1%",
     "last 2 versions",
     "not dead"
+  ],
+  "keywords": [
+    "keywords",
+    "go",
+    "here"
   ]
 }
