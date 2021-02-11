@@ -3,6 +3,7 @@
     <Datatable
       :data="data"
       :options="options"
+      :loading="loading"
       @formatData="formatData($event)"
       @getAllData="getAllData"
     >
@@ -27,6 +28,7 @@ export default {
         length: data.length,
         rows: data.docs,
       },
+      loading: false,
       options: {
         mode: "ajax",
         heads: {

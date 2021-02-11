@@ -211,7 +211,7 @@
           </div>
           <div class="table-body">
             <div class="table-responsive">
-              <Loader v-if="opts.loading" />
+              <Loader v-if="loading" />
               <table v-if="getRows.length">
                 <thead>
                   <tr>
@@ -356,6 +356,12 @@ export default {
         return {};
       },
     },
+    loading: {
+      type: Boolean,
+      default: () => {
+        return false;
+      },
+    },
   },
   data() {
     return {
@@ -386,7 +392,6 @@ export default {
           pagination: true,
         },
         shownRowNumbers: [10, 20, 30, 40, 50],
-        loading: false,
         heads: {},
         dates: {
           Today: 0,
@@ -650,7 +655,6 @@ export default {
         heads: this.getHeads,
         exportData: this.exportExcel,
       });
-      this.opts.loading = false;
     },
     json2excel(type) {
       if (type !== "all") {
@@ -662,7 +666,6 @@ export default {
         });
       } else {
         if (this.opts.mode === "ajax") {
-          this.opts.loading = true;
           this.$emit("getAllData", {
             type: "all",
             heads: this.getHeads,
