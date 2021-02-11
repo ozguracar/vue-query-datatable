@@ -1,7 +1,7 @@
 <template>
   <div class="table-wrapper">
     <div class="table-title">
-      <h6>{{ opts.title }} Deneme</h6>
+      <h6>{{ opts.title }}</h6>
       <div class="table-filter">
         <button class="bg-none table-menu" @click="mobileMenu = !mobileMenu">
           <i class="ri-menu-line"></i>
@@ -21,7 +21,10 @@
               Reset <i class="ri-refresh-line"></i>
             </button>
           </li>
-          <li class="exports-box">
+          <li
+            v-if="opts.exportExcel.currentList || opts.exportExcel.allData"
+            class="exports-box"
+          >
             <button
               @click="exports = !exports"
               :class="exports ? 'text-success' : ''"
@@ -30,10 +33,18 @@
               Exports <i class="ri-file-chart-line"></i>
             </button>
             <div v-if="exports" class="exports-box-submenu">
-              <button @click="json2excel" class="button-item">
+              <button
+                v-if="opts.exportExcel.currentList"
+                @click="json2excel"
+                class="button-item"
+              >
                 <i class="ri-file-chart-line"></i> Export Current Data
               </button>
-              <button @click="json2excel('all')" class="button-item">
+              <button
+                v-if="opts.exportExcel.allData"
+                @click="json2excel('all')"
+                class="button-item"
+              >
                 <i class="ri-file-chart-line"></i> Export All Data
               </button>
             </div>
@@ -194,7 +205,11 @@
         <table v-if="getRows.length">
           <thead>
             <tr>
-              <th v-for="(head, name) in getHeads" :key="head.title">
+              <th
+                v-for="(head, name) in getHeads"
+                :key="head.title"
+                :width="head.width"
+              >
                 {{ head.title }}
                 <span
                   v-if="head.sortable"
@@ -366,9 +381,24 @@ export default {
         searchWithButton: false,
         queryPrefix: "vd",
         exportExcel: {
-          status: true,
           currentList: true,
           allData: true,
+        },
+        defaults: {
+          search: false,
+          searchText: null,
+          shownRow: 10,
+          page: 1,
+          selectedDate: null,
+          range: {
+            start: null,
+            end: null,
+          },
+          sort: {
+            key: null,
+            type: null,
+            step: 0,
+          },
         },
       },
       undoQuery: null,
@@ -531,7 +561,7 @@ export default {
       query[this.opts.queryPrefix + "-shownRow"] = val;
       query[this.opts.queryPrefix + "-page"] =
         Math.floor((oldVal * (this.page - 1)) / val) + 1;
-      this.$router.push({ query }).catch(() => {});
+      this.$router.push({ query });
     },
     page(val) {
       this.pushQuery("page", val);
@@ -564,7 +594,7 @@ export default {
           query[this.opts.queryPrefix + "-startDate"] = val.start;
           query[this.opts.queryPrefix + "-endDate"] = val.end;
         }
-        this.$router.push({ query }).catch(() => {});
+        this.$router.push({ query });
       },
     },
     sort: {
@@ -577,9 +607,11 @@ export default {
           delete query[this.opts.queryPrefix + "-sortType"];
         } else {
           query[this.opts.queryPrefix + "-sort"] = val.key;
-          query[this.opts.queryPrefix + "-sortType"] = val.type;
+          query[this.opts.queryPrefix + "-sortType"] = val.type
+            ? val.type
+            : "asc";
         }
-        this.$router.push({ query }).catch(() => {});
+        this.$router.push({ query });
       },
     },
     "$route.query": {
@@ -590,10 +622,16 @@ export default {
           clearTimeout(this.timeout);
         }
         this.timeout = setTimeout(() => {
-          this.reload();
-          this.timeout = setTimeout(() => {
-            this.$emit("refresh", this.$route.query);
-          }, 250);
+          if (this.start) {
+            this.reload();
+            this.timeout = setTimeout(() => {
+              if (this.firstTime) {
+                this.$emit("refresh", this.$route.query);
+              } else {
+                this.firstTime = true;
+              }
+            }, 250);
+          }
         }, 250);
       },
     },
@@ -607,7 +645,20 @@ export default {
   },
   created() {
     this.setOpts();
-    this.reload();
+    Object.entries(this.opts.defaults).forEach(([key, value]) => {
+      if (value && typeof value === "object") {
+        Object.entries(value).forEach(([key2, value2]) => {
+          if (this[key][key2] != value2) {
+            this[key][key2] = value2;
+          }
+        });
+        return;
+      }
+      if (this[key] != value) {
+        this[key] = value;
+      }
+    });
+    this.start = true;
   },
   methods: {
     formatData(data) {
@@ -655,7 +706,6 @@ export default {
       sheets[name] = ws;
 
       const wb = new IWorkBook(fileNames, sheets);
-      console.log(wb);
       const wbout = XLSX.write(wb, {
         bookType: "xlsx",
         bookSST: true,
@@ -684,6 +734,18 @@ export default {
           exportExcel: {
             ...this.defaultOptions.exportExcel,
             ...this.options.exportExcel,
+          },
+          defaults: {
+            ...this.defaultOptions.defaults,
+            ...this.options.defaults,
+            range: {
+              ...this.defaultOptions.defaults.range,
+              ...this.options.defaults.range,
+            },
+            sort: {
+              ...this.defaultOptions.defaults.sort,
+              ...this.options.defaults.sort,
+            },
           },
         })
       );
@@ -762,43 +824,40 @@ export default {
         this.opts.shownRowNumbers.includes(Number(query.shownRow))
       ) {
         if (this.shownRow !== Number(query.shownRow)) {
-          this.start = true;
           this.shownRow = Number(query.shownRow);
         }
       } else {
         this.shownRow = Math.min(...this.opts.shownRowNumbers);
         if (!query.shownRow) {
-          this.start = true;
           this.pushQuery("shownRow", this.shownRow);
         }
       }
       if (query.page && Number(query.page) <= this.totalPages) {
         if (this.page !== Number(query.page)) {
-          this.start = true;
           this.page = Number(query.page);
         }
       } else {
         this.page = 1;
         if (!query.page) {
-          this.start = true;
           this.pushQuery("page", this.page);
         }
       }
       if (query.startDate) {
         if (this.range.start !== Number(query.startDate)) {
-          this.start = true;
           this.range.start = +query.startDate;
         }
+      } else if (this.range.start) {
+        this.pushQuery("startDate", this.range.start);
       }
       if (query.endDate) {
         if (this.range.end !== Number(query.endDate)) {
-          this.start = true;
           this.range.end = +query.endDate;
         }
+      } else if (this.range.end) {
+        this.pushQuery("endDate", this.range.end);
       }
       if (query.sort) {
         if (this.sort.key !== query.sort) {
-          this.start = true;
           if (
             !this.getHeads[query.sort] ||
             !this.getHeads[query.sort].sortable
@@ -806,7 +865,7 @@ export default {
             const query = { ...this.$route.query };
             delete query[this.opts.queryPrefix + "-sort"];
             delete query[this.opts.queryPrefix + "-sortType"];
-            this.$router.push({ query }).catch(() => {});
+            this.$router.push({ query });
           } else {
             this.sort = {
               key: query.sort,
@@ -815,18 +874,24 @@ export default {
             };
           }
         }
+      } else if (this.sort.key) {
+        const query = { ...this.$route.query };
+        query[this.opts.queryPrefix + "-sort"] = this.sort.key;
+        query[this.opts.queryPrefix + "-sortType"] = this.sort.type
+          ? this.sort.type
+          : "asc";
+        this.$router.push({ query });
       }
       if (query.search) {
-        this.start = true;
         this.searchText = query.search;
         this.search = true;
+      } else if (this.searchText) {
+        if (!this.opts.searchWithButton) {
+          this.pushQuery("search", this.searchText);
+          this.search = true;
+        }
       } else {
-        this.start = true;
         this.searchText = null;
-      }
-      if (!this.start) {
-        this.start = true;
-        this.$emit("refresh", this.$route.query);
       }
     },
     reset() {
@@ -842,7 +907,7 @@ export default {
           delete query[element];
         }
       });
-      this.$router.push({ query }).catch(() => {});
+      this.$router.push({ query });
     },
     undo() {
       const query = JSON.parse(JSON.stringify(this.$route.query));
@@ -851,9 +916,7 @@ export default {
           delete query[element];
         }
       });
-      this.$router
-        .push({ query: { ...query, ...this.undoQuery } })
-        .catch(() => {});
+      this.$router.push({ query: { ...query, ...this.undoQuery } });
       this.undoQuery = null;
     },
     setCustomFilter(custom, value) {
@@ -881,7 +944,7 @@ export default {
       } else {
         query[name] = value;
       }
-      this.$router.push({ query }).catch(() => {});
+      this.$router.push({ query });
     },
     removeQuery(name, prefix = true) {
       const query = { ...this.$route.query };
@@ -890,7 +953,7 @@ export default {
       } else {
         delete query[name];
       }
-      this.$router.push({ query }).catch(() => {});
+      this.$router.push({ query });
     },
   },
 };

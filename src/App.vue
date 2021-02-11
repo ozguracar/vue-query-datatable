@@ -31,24 +31,44 @@ export default {
       },
       loading: false,
       options: {
+        mode: "ajax",
+        defaults: {
+          search: false,
+          searchText: null,
+          shownRow: 10,
+          page: 1,
+          selectedDate: null,
+          range: {
+            start: null,
+            end: null,
+          },
+          sort: {
+            key: "createdAt",
+            type: "asc",
+            step: 1,
+          },
+        },
         heads: {
           name: {
             title: "Name",
             visibility: true,
             sortable: true,
             type: "string",
+            width: "20%",
           },
           surname: {
             title: "Surname",
             visibility: true,
             sortable: false,
             type: "string",
+            width: "20%",
           },
           email: {
             title: "Email",
             visibility: true,
             sortable: true,
             type: "string",
+            width: "20%",
           },
           createdAt: {
             title: "Register Date",
