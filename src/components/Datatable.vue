@@ -614,7 +614,6 @@ export default {
             : "asc";
         }
         this.$router.push({ query });
-        this.page = 1;
       },
     },
     "$route.query": {
@@ -948,7 +947,12 @@ export default {
         query[name] = value;
       }
       this.$router.push({ query });
-      if (name !== "shownRow" && name !== "page") {
+      if (
+        name !== "shownRow" &&
+        name !== "page" &&
+        name !== "sort" &&
+        name !== "sortType"
+      ) {
         this.page = 1;
       }
     },
@@ -960,7 +964,12 @@ export default {
         delete query[name];
       }
       this.$router.push({ query });
-      if (name !== "shownRow" && name !== "page") {
+      if (
+        name !== "shownRow" &&
+        name !== "page" &&
+        name !== "sort" &&
+        name !== "sortType"
+      ) {
         this.page = 1;
       }
     },
