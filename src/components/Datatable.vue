@@ -693,15 +693,16 @@ export default {
         this.reload();
         this.timeout = setTimeout(() => {
           if (this.firstTime) {
+            const query = { ...this.$route.query, ...this.query };
             this.$router.push({
-              query: { ...this.$route.query, ...this.query },
+              query,
             });
-            Object.entries(this.$route.query).forEach(([key, value]) => {
+            Object.entries(query).forEach(([key, value]) => {
               if (!this.query[key]) {
                 this.pushQuery(key, value, false);
               }
             });
-            this.$emit("refresh", this.$route.query);
+            this.$emit("refresh", query);
           } else {
             this.firstTime = true;
           }
