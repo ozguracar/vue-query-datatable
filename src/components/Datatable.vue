@@ -7,22 +7,29 @@
           <i class="ri-menu-line"></i>
         </button>
         <ul v-if="mobileMenu" class="list-propery">
-          <li v-if="undoQuery">
+          <li v-if="opts.visibility.undoButton && undoQuery">
             <button class="button-item" @click="undo">
               Undo <i class="ri-arrow-go-back-fill"></i>
             </button>
           </li>
-          <li>
-            <button
-              :class="undoQuery ? 'text-success' : ''"
-              class="button-item"
-              @click="reset"
-            >
+          <!-- <li
+            v-if="
+              opts.visibility.forwardButton && queryIndex < undoQueries.length
+            "
+          >
+            <button class="button-item" @click="reset('forward')">
+              Forward <i class="ri-arrow-go-forward-fill"></i>
+            </button>
+          </li> -->
+          <li v-if="opts.visibility.resetButton">
+            <button class="button-item" @click="reset">
               Reset <i class="ri-refresh-line"></i>
             </button>
           </li>
           <li
-            v-if="opts.exportExcel.currentList || opts.exportExcel.allData"
+            v-if="
+              opts.visibility.exportCurrentList || opts.visibility.exportAllData
+            "
             class="exports-box"
           >
             <button
@@ -32,16 +39,20 @@
             >
               Exports <i class="ri-file-chart-line"></i>
             </button>
-            <div v-if="exports" class="exports-box-submenu">
+            <div
+              v-if="exports"
+              @mouseleave="exports = false"
+              class="exports-box-submenu"
+            >
               <button
-                v-if="opts.exportExcel.currentList"
+                v-if="opts.visibility.exportCurrentList"
                 @click="json2excel"
                 class="button-item"
               >
                 <i class="ri-file-chart-line"></i> Export Current Data
               </button>
               <button
-                v-if="opts.exportExcel.allData"
+                v-if="opts.visibility.exportAllData"
                 @click="json2excel('all')"
                 class="button-item"
               >
@@ -49,7 +60,7 @@
               </button>
             </div>
           </li>
-          <li>
+          <li v-if="opts.visibility.filter">
             <button
               :class="filter ? 'text-success' : ''"
               class="button-item"
@@ -57,11 +68,11 @@
             >
               Filters <i class="ri-sound-module-line"></i>
             </button>
-            <ul v-if="filter" class="filters-box">
+            <ul v-if="filter" @mouseleave="filter = false" class="filters-box">
               <li @click="filter = false" class="filter-close">
                 <i class="ri-close-circle-line"></i>
               </li>
-              <li class="date">
+              <li v-if="opts.visibility.dates" class="date">
                 <span class="filter-title">Date: </span>
                 <button
                   v-for="(value, name) in opts.dates"
@@ -73,7 +84,10 @@
                   {{ name }}
                 </button>
               </li>
-              <li class="date position-relative date-range">
+              <li
+                v-if="opts.visibility.datepicker"
+                class="date position-relative date-range"
+              >
                 <span class="filter-title d-flex"
                   >Date Range:
                   <DatePicker
@@ -110,7 +124,7 @@
                   </DatePicker>
                 </span>
               </li>
-              <li class="date">
+              <li v-if="opts.visibility.selectShownRow" class="date">
                 <span class="filter-title">How Many Rows: </span>
                 <button
                   v-for="n in opts.shownRowNumbers"
@@ -122,14 +136,14 @@
                   {{ n }}
                 </button>
               </li>
-              <li class="date">
+              <li v-if="opts.visibility.columns" class="date">
                 <span class="filter-title">Select Columns: </span>
-                <button class="bg-none" @click="selectAllHeads">
+                <button class="bg-none selector" @click="selectAllHeads">
                   Select All
                 </button>
                 <button
                   v-if="getFilterStatus.reverse"
-                  class="bg-none default-select"
+                  class="bg-none selector default-select"
                   @click="reserveHeads"
                 >
                   Reverse
@@ -180,7 +194,12 @@
               </li>
             </ul>
           </li>
-          <li class="search-box">
+          <li
+            v-if="opts.visibility.search"
+            @mouseover="search = true"
+            @mouseleave="!searchText ? (search = false) : ''"
+            class="search-box"
+          >
             <button v-if="!search" class="button-item" @click="search = true">
               Search <i class="ri-search-line"></i>
             </button>
@@ -195,6 +214,22 @@
                 ></i>
               </button>
             </div>
+            <ul v-if="searchData.length && search" class="filters-box">
+              <li
+                v-for="(data, index) in searchData"
+                :key="'search-' + index"
+                class="date"
+              >
+                <slot
+                  name="search"
+                  :data="data"
+                  :index="index"
+                  :pushQuery="pushQuery"
+                  :removeQuery="removeQuery"
+                  :closeSearch="closeSearch"
+                ></slot>
+              </li>
+            </ul>
           </li>
         </ul>
       </div>
@@ -203,7 +238,7 @@
       <div class="table-responsive">
         <Loader v-if="loading" />
         <table v-if="getRows.length">
-          <thead>
+          <thead v-if="opts.visibility.heads">
             <tr>
               <th
                 v-for="(head, name) in getHeads"
@@ -233,7 +268,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="row in getRows" :key="row[opts.rowId]">
+            <tr v-for="(row, index) in getRows" :key="row[opts.rowId]">
               <td
                 v-for="(value, keyName) in getHeads"
                 :key="opts.rowId + keyName"
@@ -242,6 +277,7 @@
                   :name="'column-' + keyName"
                   :column="row[keyName]"
                   :row="row"
+                  :index="index"
                   >{{ row[keyName] }}</slot
                 >
               </td>
@@ -251,8 +287,8 @@
         <div v-else class="text-center table-blank">There is no data</div>
       </div>
     </div>
-    <div class="table-bottom">
-      <div class="left">
+    <div v-if="opts.visibility.footer" class="table-bottom">
+      <div v-if="opts.visibility.shownRow" class="left">
         <span class="rows-number">Number of rows:</span>
         <select v-model="shownRow">
           <option
@@ -267,7 +303,7 @@
           of {{ data.length }}
         </span>
       </div>
-      <div class="center">
+      <div v-if="opts.visibility.pagination" class="center">
         <ul>
           <li v-if="getStartPage.number > 1" class="text-cascade-grey">...</li>
           <li
@@ -286,7 +322,7 @@
           <li v-if="page + 5 < totalPages" class="text-cascade-grey">...</li>
         </ul>
       </div>
-      <div class="right">
+      <div v-if="opts.visibility.pagination" class="right">
         <span
           :class="page > 1 ? 'text-hoki-grey' : 'text-cascade-grey'"
           @click="page > 1 ? page-- : ''"
@@ -323,6 +359,12 @@ export default {
       type: Object,
       default: () => {
         return { length: 0, rows: [] };
+      },
+    },
+    searchData: {
+      type: Array,
+      default: () => {
+        return [];
       },
     },
     options: {
@@ -364,8 +406,21 @@ export default {
         rowId: "id",
         dateKey: "createdAt",
         visibility: {
+          undoButton: true,
+          forwardButton: true,
+          resetButton: true,
+          exportCurrentList: true,
+          exportAllData: true,
+          filter: true,
+          dates: true,
+          datepicker: true,
+          selectShownRow: true,
+          columns: true,
+          search: true,
+          heads: true,
+          footer: true,
+          shownRow: true,
           totalRows: true,
-          numberOfRows: true,
           pagination: true,
         },
         shownRowNumbers: [10, 20, 30, 40, 50],
@@ -380,10 +435,6 @@ export default {
         customFilter: [],
         searchWithButton: false,
         queryPrefix: "vd",
-        exportExcel: {
-          currentList: true,
-          allData: true,
-        },
         defaults: {
           search: false,
           searchText: null,
@@ -403,6 +454,7 @@ export default {
       },
       undoQuery: null,
       opts: {},
+      query: { ...this.$route.query },
     };
   },
   computed: {
@@ -456,7 +508,7 @@ export default {
         );
       }
       if (this.sort.key) {
-        if (this.getHeads[this.sort.key].type === "date") {
+        if (this.opts.heads[this.sort.key].type === "date") {
           data.sort((a, b) => {
             if (
               new Date(a[this.sort.key]).getTime() >
@@ -472,7 +524,7 @@ export default {
             }
             return 0;
           });
-        } else if (this.getHeads[this.sort.key].type === "string") {
+        } else if (this.opts.heads[this.sort.key].type === "string") {
           data.sort((a, b) => {
             if (
               a[this.sort.key].toLowerCase() > b[this.sort.key].toLowerCase()
@@ -496,7 +548,7 @@ export default {
           data.reverse();
         }
       }
-      if (this.$route.query[this.opts.queryPrefix + "-search"]) {
+      if (this.query[this.opts.queryPrefix + "-search"]) {
         data = data.filter((x) => {
           let check = false;
           Object.entries(this.opts.heads).forEach(([key, value]) => {
@@ -505,9 +557,7 @@ export default {
               x[key]
                 .toLowerCase()
                 .includes(
-                  this.$route.query[
-                    this.opts.queryPrefix + "-search"
-                  ].toLowerCase()
+                  this.query[this.opts.queryPrefix + "-search"].toLowerCase()
                 )
             ) {
               check = true;
@@ -553,21 +603,21 @@ export default {
     "opts.shownRowNumbers"(val) {
       if (!val.includes(this.shownRow)) {
         this.shownRow = Math.min(...val);
-        this.pushQuery("shownRow", this.shownRow);
       }
     },
     shownRow(val, oldVal) {
-      const query = { ...this.$route.query };
-      query[this.opts.queryPrefix + "-shownRow"] = val;
-      query[this.opts.queryPrefix + "-page"] =
-        Math.floor((oldVal * (this.page - 1)) / val) + 1;
-      this.$router.push({ query });
+      this.pushQuery("shownRow", val);
+      this.page = Math.floor((oldVal * (this.page - 1)) / val) + 1;
     },
     page(val) {
       this.pushQuery("page", val);
     },
     searchText(val) {
-      if (!this.opts.searchWithButton) {
+      if (this.opts.customSearch) {
+        if (!this.opts.searchWithButton) {
+          this.$emit("search", val);
+        }
+      } else if (!this.opts.searchWithButton) {
         this.pushQuery("search", val);
         this.page = 1;
       }
@@ -587,56 +637,62 @@ export default {
       deep: true,
       immediate: true,
       handler(val) {
-        const query = { ...this.$route.query };
         if (!val.start || !val.end) {
-          delete query[this.opts.queryPrefix + "-startDate"];
-          delete query[this.opts.queryPrefix + "-endDate"];
+          this.removeQuery("startDate");
+          this.removeQuery("endDate");
         } else {
-          query[this.opts.queryPrefix + "-startDate"] = val.start;
-          query[this.opts.queryPrefix + "-endDate"] = val.end;
+          this.pushQuery("startDate", val.start);
+
+          this.pushQuery("endDate", val.end);
+          this.page = 1;
         }
-        this.$router.push({ query });
-        this.page = 1;
       },
     },
     sort: {
       deep: true,
       immediate: true,
       handler(val) {
-        const query = { ...this.$route.query };
         if (!val.key) {
-          delete query[this.opts.queryPrefix + "-sort"];
-          delete query[this.opts.queryPrefix + "-sortType"];
+          this.removeQuery("sort");
+          this.removeQuery("sortType");
         } else {
-          query[this.opts.queryPrefix + "-sort"] = val.key;
-          query[this.opts.queryPrefix + "-sortType"] = val.type
-            ? val.type
-            : "asc";
+          this.pushQuery("sort", val.key);
+          this.pushQuery("sortType", val.type ? val.type : "asc");
         }
-        this.$router.push({ query });
       },
     },
-    "$route.query": {
+    query: {
       deep: true,
       immediate: true,
       handler() {
+        console.log({ ...this.query });
+        if (this.compareQuery(this.$route.query, this.query)) {
+          return;
+        }
         if (this.timeout) {
           clearTimeout(this.timeout);
         }
         this.timeout = setTimeout(() => {
-          if (this.start) {
-            this.reload();
-            this.timeout = setTimeout(() => {
-              if (this.firstTime) {
-                this.$emit("refresh", this.$route.query);
-              } else {
-                this.firstTime = true;
-              }
-            }, 250);
-          }
+          this.reload();
+          this.timeout = setTimeout(() => {
+            if (this.firstTime) {
+              this.$router.push({
+                query: { ...this.$route.query, ...this.query },
+              });
+              Object.entries(this.$route.query).forEach(([key, value]) => {
+                if (!this.query[key]) {
+                  this.pushQuery(key, value, false);
+                }
+              });
+              this.$emit("refresh", this.$route.query);
+            } else {
+              this.firstTime = true;
+            }
+          }, 250);
         }, 250);
       },
     },
+
     options: {
       deep: true,
       immediate: true,
@@ -660,9 +716,27 @@ export default {
         this[key] = value;
       }
     });
-    this.start = true;
   },
   methods: {
+    compareQuery(o1, o2) {
+      for (let p in o1) {
+        // eslint-disable-next-line no-prototype-builtins
+        if (o1.hasOwnProperty(p)) {
+          if (o1[p] !== o2[p]) {
+            return false;
+          }
+        }
+      }
+      for (let p in o2) {
+        // eslint-disable-next-line no-prototype-builtins
+        if (o2.hasOwnProperty(p)) {
+          if (o1[p] !== o2[p]) {
+            return false;
+          }
+        }
+      }
+      return true;
+    },
     formatData(data) {
       this.$emit("formatData", {
         type: "all",
@@ -756,8 +830,8 @@ export default {
       });
       this.opts = opts;
       this.opts.customFilter.forEach((element) => {
-        if (this.$route.query[element.key]) {
-          element.selected = this.$route.query[element.key];
+        if (this.query[element.key]) {
+          element.selected = this.query[element.key];
         }
       });
     },
@@ -808,17 +882,19 @@ export default {
       this.removeQuery("search");
     },
     setSearch() {
-      if (this.searchText !== this.$route.query.search) {
+      if (this.opts.customSearch) {
+        this.$emit("search", this.searchText);
+      } else if (this.searchText !== this.query.search) {
         this.pushQuery("search", this.searchText);
       }
     },
     reload() {
       const query = {};
-      Object.keys(this.$route.query).forEach((el) => {
+      Object.keys(this.query).forEach((el) => {
         if (el.startsWith(this.opts.queryPrefix + "-")) {
           query[
             el.substring((this.opts.queryPrefix + "-").length)
-          ] = this.$route.query[el];
+          ] = this.query[el];
         }
       });
       if (
@@ -830,9 +906,6 @@ export default {
         }
       } else {
         this.shownRow = Math.min(...this.opts.shownRowNumbers);
-        if (!query.shownRow) {
-          this.pushQuery("shownRow", this.shownRow);
-        }
       }
       if (query.page && Number(query.page) <= this.totalPages) {
         if (this.page !== Number(query.page)) {
@@ -840,34 +913,25 @@ export default {
         }
       } else {
         this.page = 1;
-        if (!query.page) {
-          this.pushQuery("page", this.page);
-        }
       }
       if (query.startDate) {
         if (this.range.start !== Number(query.startDate)) {
           this.range.start = +query.startDate;
         }
-      } else if (this.range.start) {
-        this.pushQuery("startDate", this.range.start);
       }
       if (query.endDate) {
         if (this.range.end !== Number(query.endDate)) {
           this.range.end = +query.endDate;
         }
-      } else if (this.range.end) {
-        this.pushQuery("endDate", this.range.end);
       }
       if (query.sort) {
         if (this.sort.key !== query.sort) {
           if (
-            !this.getHeads[query.sort] ||
-            !this.getHeads[query.sort].sortable
+            !this.opts.heads[query.sort] ||
+            !this.opts.heads[query.sort].sortable
           ) {
-            const query = { ...this.$route.query };
-            delete query[this.opts.queryPrefix + "-sort"];
-            delete query[this.opts.queryPrefix + "-sortType"];
-            this.$router.push({ query });
+            this.removeQuery("sort");
+            this.removeQuery("sortType");
           } else {
             this.sort = {
               key: query.sort,
@@ -876,54 +940,49 @@ export default {
             };
           }
         }
-      } else if (this.sort.key) {
-        const query = { ...this.$route.query };
-        query[this.opts.queryPrefix + "-sort"] = this.sort.key;
-        query[this.opts.queryPrefix + "-sortType"] = this.sort.type
-          ? this.sort.type
-          : "asc";
-        this.$router.push({ query });
       }
       if (query.search) {
         this.searchText = query.search;
         this.search = true;
       } else if (this.searchText) {
-        if (!this.opts.searchWithButton) {
-          this.pushQuery("search", this.searchText);
-          this.search = true;
-        }
-      } else {
-        this.searchText = null;
+        this.search = true;
       }
-    },
-    reset() {
-      this.undoQuery = JSON.parse(JSON.stringify(this.$route.query));
-      Object.keys(this.undoQuery).forEach((element) => {
-        if (!element.startsWith(this.opts.queryPrefix + "-")) {
-          delete this.undoQuery[element];
+      this.opts.customFilter.forEach((element) => {
+        if (!this.query[element.key]) {
+          element.selected = null;
+        } else {
+          element.selected = this.query[element.key];
         }
       });
-      const query = JSON.parse(JSON.stringify(this.$route.query));
-      Object.keys(query).forEach((element) => {
-        if (element.startsWith(this.opts.queryPrefix + "-")) {
-          delete query[element];
-        }
-      });
-      this.$router.push({ query });
     },
     undo() {
-      const query = JSON.parse(JSON.stringify(this.$route.query));
-      Object.keys(query).forEach((element) => {
-        if (element.startsWith(this.opts.queryPrefix + "-")) {
-          delete query[element];
+      Object.keys(this.query).forEach((element) => {
+        if (
+          element.startsWith(this.opts.queryPrefix + "-") ||
+          this.opts.customFilter.find((x) => x.key === element)
+        ) {
+          this.query[element] = undefined;
         }
       });
-      this.$router.push({ query: { ...query, ...this.undoQuery } });
+      Object.entries(this.undoQuery).forEach(([key, value]) => {
+        this.pushQuery(key, value, false);
+      });
       this.undoQuery = null;
     },
+    reset() {
+      this.undoQuery = { ...this.query };
+      Object.keys(this.query).forEach((element) => {
+        if (
+          element.startsWith(this.opts.queryPrefix + "-") ||
+          this.opts.customFilter.find((x) => x.key === element)
+        ) {
+          this.query[element] = undefined;
+        }
+      });
+    },
     setCustomFilter(custom, value) {
-      if (this.$route.query[custom.key]) {
-        if (this.$route.query[custom.key] === value.key) {
+      if (this.query[custom.key]) {
+        if (this.query[custom.key] === value.key) {
           custom.selected = null;
           this.removeQuery(custom.key, false);
         } else {
@@ -937,39 +996,26 @@ export default {
     },
     pushQuery(name, value, prefix = true) {
       // eslint-disable-next-line eqeqeq
-      if (this.$route.query[this.opts.queryPrefix + "-" + name] == value) {
+      if (this.query[this.opts.queryPrefix + "-" + name] == value) {
         return;
       }
-      const query = { ...this.$route.query };
-      if (prefix) {
-        query[this.opts.queryPrefix + "-" + name] = value;
-      } else {
-        query[name] = value;
-      }
-      this.$router.push({ query });
-      if (
-        name !== "shownRow" &&
-        name !== "page" &&
-        name !== "sort" &&
-        name !== "sortType"
-      ) {
+      this.$set(
+        this.query,
+        prefix ? this.opts.queryPrefix + "-" + name : name,
+        value
+      );
+      if (name !== "shownRow" && name !== "page") {
         this.page = 1;
       }
     },
     removeQuery(name, prefix = true) {
-      const query = { ...this.$route.query };
-      if (prefix) {
-        delete query[this.opts.queryPrefix + "-" + name];
-      } else {
-        delete query[name];
+      if (!this.query[prefix ? this.opts.queryPrefix + "-" + name : name]) {
+        return;
       }
-      this.$router.push({ query });
-      if (
-        name !== "shownRow" &&
-        name !== "page" &&
-        name !== "sort" &&
-        name !== "sortType"
-      ) {
+      this.query[
+        prefix ? this.opts.queryPrefix + "-" + name : name
+      ] = undefined;
+      if (name !== "shownRow" && name !== "page") {
         this.page = 1;
       }
     },
@@ -1164,7 +1210,10 @@ img {
 .table-wrapper .bg-none {
   background: none;
 }
-
+.table-wrapper .selector {
+  padding: 0 5px;
+  cursor: pointer;
+}
 .table-wrapper input {
   font-family: var(--vd-standart-font);
 }
@@ -1333,10 +1382,11 @@ img {
 
 .table-title .table-filter ul li .search {
   position: relative;
+  height: 20px;
 }
 
 .table-title .table-filter ul li .search input {
-  height: 30px;
+  height: 100%;
   background: var(--vd-grey);
   font-size: 12px;
   font-family: var(--vd-standart-font);
@@ -1482,7 +1532,15 @@ img {
   color: var(--vd-cascade-grey);
   cursor: pointer;
 }
-
+.table-title .table-filter ul li .filters-box li.date .date-columns-group .btn {
+  padding: 5px 10px;
+  background: none;
+  border-radius: 30px;
+  font-size: 13px;
+  border: 2px solid transparent;
+  color: var(--vd-cascade-grey);
+  cursor: pointer;
+}
 .table-title
   .table-filter
   ul

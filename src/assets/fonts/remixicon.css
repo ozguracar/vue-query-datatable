@@ -1,31 +1,28 @@
+
 /*
-* Remix Icon v2.5.0
 * https://remixicon.com
 * https://github.com/Remix-Design/RemixIcon
-*
 * Copyright RemixIcon.com
 * Released under the Apache License Version 2.0
-*
-* Date: 2020-05-23
 */
+
 @font-face {
-  font-family: "remixicon";
-  src: url('remixicon.eot?t=1590207869815'); /* IE9*/
-  src: url('remixicon.eot?t=1590207869815#iefix') format('embedded-opentype'), /* IE6-IE8 */
-  url("remixicon.woff2?t=1590207869815") format("woff2"),
-  url("remixicon.woff?t=1590207869815") format("woff"),
-  url('remixicon.ttf?t=1590207869815') format('truetype'), /* chrome, firefox, opera, Safari, Android, iOS 4.2+*/
-  url('remixicon.svg?t=1590207869815#remixicon') format('svg'); /* iOS 4.1- */
-  font-display: swap;
+    font-family: "remixicon";
+    src: url('remixicon.eot?t=1613214778974'); /* IE9*/
+    src: url('remixicon.eot?t=1613214778974#iefix') format('embedded-opentype'), /* IE6-IE8 */
+    url("remixicon.woff2?t=1613214778974") format("woff2"),
+    url("remixicon.woff?t=1613214778974") format("woff"),
+    url('remixicon.ttf?t=1613214778974') format('truetype'), /* chrome, firefox, opera, Safari, Android, iOS 4.2+*/
+    url('remixicon.svg?t=1613214778974#remixicon') format('svg'); /* iOS 4.1- */
+    font-display: swap;
 }
 
-[class^="ri-"], [class*=" ri-"] {
-  font-family: 'remixicon' !important;
-  font-style: normal;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+[class^="ri-"], [class*="ri-"] {
+    font-family: 'remixicon' !important;
+    font-style: normal;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
-
 
 .ri-lg { font-size: 1.3333em; line-height: 0.75em; vertical-align: -.0667em; }
 .ri-xl { font-size: 1.5em; line-height: 0.6666em; vertical-align: -.075em; }
@@ -43,8 +40,10 @@
 .ri-9x { font-size: 9em; }
 .ri-10x { font-size: 10em; }
 .ri-fw { text-align: center; width: 1.25em; }
+
+.ri-arrow-go-forward-line:before { content: "\ea5a"; }
+.ri-arrow-go-back-line:before { content: "\ea58"; }
 .ri-menu-line:before { content: "\ef3e"; }
-.ri-arrow-go-back-fill:before { content: "\ea57"; }
 .ri-refresh-line:before { content: "\f064"; }
 .ri-file-chart-line:before { content: "\eccd"; }
 .ri-sound-module-line:before { content: "\f162"; }
@@ -52,6 +51,6 @@
 .ri-search-line:before { content: "\f0d1"; }
 .ri-close-line:before { content: "\eb99"; }
 .ri-arrow-drop-up-fill:before { content: "\ea55"; }
+.ri-arrow-drop-right-fill:before { content: "\ea53"; }
 .ri-arrow-drop-down-fill:before { content: "\ea4f"; }
-.ri-arrow-left-s-fill:before { content: "\ea63"; }
-.ri-arrow-right-s-fill:before { content: "\ea6d"; }
+.ri-arrow-drop-left-fill:before { content: "\ea51"; }

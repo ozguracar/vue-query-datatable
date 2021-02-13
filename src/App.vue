@@ -4,10 +4,17 @@
       :data="data"
       :options="options"
       :loading="loading"
+      :searchData="searchData"
       @formatData="formatData($event)"
       @getAllData="getAllData"
       @refresh="refreshData($event)"
+      @search="search($event)"
     >
+      <template #search="{ data, pushQuery, closeSearch }">
+        <span @click="pushQuery('user', data.id)"
+          >{{ data }} <span @click="closeSearch">x</span></span
+        >
+      </template>
       <template #column-name="{ column, row }">
         {{ row.surname }} {{ column }}
       </template>
@@ -30,6 +37,7 @@ export default {
         rows: data.docs,
       },
       loading: false,
+      searchData: [],
       options: {
         mode: "static",
         defaults: {
@@ -101,10 +109,26 @@ export default {
             ],
           },
         ],
+        customSearch: true,
       },
     };
   },
   methods: {
+    search(val) {
+      if (!val) {
+        this.searchData = [];
+        return;
+      }
+      this.searchData = data.docs.filter((x) => {
+        let check = false;
+        Object.entries(this.options.heads).forEach(([key, value]) => {
+          if (value.type === "string" && x[key].toLowerCase().includes(val)) {
+            check = true;
+          }
+        });
+        return check;
+      });
+    },
     formatData({ data, heads, exportData, type }) {
       const newData = data.map((el) => {
         const d = {};
@@ -127,8 +151,8 @@ export default {
         this.loading = false;
       }, 2000);
     },
-    refreshData(query) {
-      console.log(query);
+    refreshData() {
+      // console.log(query);
       // startDate
       // endDate
       // sort
