@@ -9,7 +9,7 @@
         <ul v-if="mobileMenu" class="list-propery">
           <li v-if="opts.visibility.undoButton && undoQuery">
             <button class="button-item" @click="undo">
-              Undo <i class="ri-arrow-go-back-fill"></i>
+              {{ locale("Undo") }} <i class="ri-arrow-go-back-fill"></i>
             </button>
           </li>
           <!-- <li
@@ -23,7 +23,7 @@
           </li> -->
           <li v-if="opts.visibility.resetButton">
             <button class="button-item" @click="reset">
-              Reset <i class="ri-refresh-line"></i>
+              {{ locale("Reset") }} <i class="ri-refresh-line"></i>
             </button>
           </li>
           <li
@@ -37,7 +37,7 @@
               :class="exports ? 'text-success' : ''"
               class="button-item"
             >
-              Exports <i class="ri-file-chart-line"></i>
+              {{ locale("Exports") }} <i class="ri-file-chart-line"></i>
             </button>
             <div
               v-if="exports"
@@ -49,14 +49,16 @@
                 @click="json2excel"
                 class="button-item"
               >
-                <i class="ri-file-chart-line"></i> Export Current Data
+                <i class="ri-file-chart-line"></i>
+                {{ locale("Export Current Data") }}
               </button>
               <button
                 v-if="opts.visibility.exportAllData"
                 @click="json2excel('all')"
                 class="button-item"
               >
-                <i class="ri-file-chart-line"></i> Export All Data
+                <i class="ri-file-chart-line"></i
+                >{{ locale("Export All Data") }}
               </button>
             </div>
           </li>
@@ -66,14 +68,14 @@
               class="button-item"
               @click="filter = !filter"
             >
-              Filters <i class="ri-sound-module-line"></i>
+              {{ locale("Filters") }} <i class="ri-sound-module-line"></i>
             </button>
             <ul v-if="filter" @mouseleave="filter = false" class="filters-box">
               <li @click="filter = false" class="filter-close">
                 <i class="ri-close-circle-line"></i>
               </li>
               <li v-if="opts.visibility.dates" class="date">
-                <span class="filter-title">Date: </span>
+                <span class="filter-title">{{ locale("Date") }}: </span>
                 <button
                   v-for="(value, name) in opts.dates"
                   :key="name"
@@ -89,7 +91,7 @@
                 class="date position-relative date-range"
               >
                 <span class="filter-title d-flex"
-                  >Date Range:
+                  >{{ locale("Date Range") }}:
                   <DatePicker
                     :key="DatePickerVersion"
                     v-model="dateRange"
@@ -106,7 +108,7 @@
                             ? new Date(range.start).toLocaleString()
                             : null
                         "
-                        placeholder="Start Date"
+                        :placeholder="locale('Start Date')"
                         readonly
                         v-on="inputEvents.start"
                       />
@@ -116,7 +118,7 @@
                             ? new Date(range.end).toLocaleString()
                             : null
                         "
-                        placeholder="Finish Date"
+                        :placeholder="locale('Finish Date')"
                         readonly
                         v-on="inputEvents.end"
                       />
@@ -125,7 +127,9 @@
                 </span>
               </li>
               <li v-if="opts.visibility.selectShownRow" class="date">
-                <span class="filter-title">How Many Rows: </span>
+                <span class="filter-title"
+                  >{{ locale("How Many Rows") }}:
+                </span>
                 <button
                   v-for="n in opts.shownRowNumbers"
                   :key="'filtershownRow' + n"
@@ -137,16 +141,18 @@
                 </button>
               </li>
               <li v-if="opts.visibility.columns" class="date">
-                <span class="filter-title">Select Columns: </span>
+                <span class="filter-title"
+                  >{{ locale("Select Columns") }}:
+                </span>
                 <button class="bg-none selector" @click="selectAllHeads">
-                  Select All
+                  {{ locale("Select All") }}
                 </button>
                 <button
                   v-if="getFilterStatus.reverse"
                   class="bg-none selector default-select"
                   @click="reserveHeads"
                 >
-                  Reverse
+                  {{ locale("Reverse") }}
                 </button>
                 <ul class="date-columns-group">
                   <li
@@ -201,10 +207,14 @@
             class="search-box"
           >
             <button v-if="!search" class="button-item" @click="search = true">
-              Search <i class="ri-search-line"></i>
+              {{ locale("Search") }} <i class="ri-search-line"></i>
             </button>
             <div v-if="search" class="search">
-              <input v-model="searchText" type="text" placeholder="Search" />
+              <input
+                v-model="searchText"
+                type="text"
+                :placeholder="locale('Search')"
+              />
               <button class="bg-none">
                 <i class="ri-close-line text-danger" @click="closeSearch"></i>
                 <i
@@ -284,12 +294,14 @@
             </tr>
           </tbody>
         </table>
-        <div v-else class="text-center table-blank">There is no data</div>
+        <div v-else class="text-center table-blank">
+          {{ locale("There is no data") }}
+        </div>
       </div>
     </div>
     <div v-if="opts.visibility.footer" class="table-bottom">
       <div v-if="opts.visibility.shownRow" class="left">
-        <span class="rows-number">Number of rows:</span>
+        <span class="rows-number">{{ locale("Number of rows") }}:</span>
         <select v-model="shownRow">
           <option
             v-for="n in opts.shownRowNumbers"
@@ -326,12 +338,13 @@
         <span
           :class="page > 1 ? 'text-hoki-grey' : 'text-cascade-grey'"
           @click="page > 1 ? page-- : ''"
-          ><i class="ri-arrow-left-s-fill"></i> Previus Page</span
+          ><i class="ri-arrow-left-s-fill"></i>
+          {{ locale("Previus Page") }}</span
         >
         <span
           :class="page < totalPages ? 'text-hoki-grey' : 'text-cascade-grey'"
           @click="page < totalPages ? page++ : ''"
-          >Next Page <i class="ri-arrow-right-s-fill"></i
+          >{{ locale("Next Page") }} <i class="ri-arrow-right-s-fill"></i
         ></span>
       </div>
     </div>
@@ -368,6 +381,12 @@ export default {
       },
     },
     options: {
+      type: Object,
+      default: () => {
+        return {};
+      },
+    },
+    texts: {
       type: Object,
       default: () => {
         return {};
@@ -665,30 +684,27 @@ export default {
       deep: true,
       immediate: true,
       handler() {
-        console.log({ ...this.query });
         if (this.compareQuery(this.$route.query, this.query)) {
           return;
         }
         if (this.timeout) {
           clearTimeout(this.timeout);
         }
+        this.reload();
         this.timeout = setTimeout(() => {
-          this.reload();
-          this.timeout = setTimeout(() => {
-            if (this.firstTime) {
-              this.$router.push({
-                query: { ...this.$route.query, ...this.query },
-              });
-              Object.entries(this.$route.query).forEach(([key, value]) => {
-                if (!this.query[key]) {
-                  this.pushQuery(key, value, false);
-                }
-              });
-              this.$emit("refresh", this.$route.query);
-            } else {
-              this.firstTime = true;
-            }
-          }, 250);
+          if (this.firstTime) {
+            this.$router.push({
+              query: { ...this.$route.query, ...this.query },
+            });
+            Object.entries(this.$route.query).forEach(([key, value]) => {
+              if (!this.query[key]) {
+                this.pushQuery(key, value, false);
+              }
+            });
+            this.$emit("refresh", this.$route.query);
+          } else {
+            this.firstTime = true;
+          }
         }, 250);
       },
     },
@@ -718,6 +734,9 @@ export default {
     });
   },
   methods: {
+    locale(text) {
+      return this.texts[text] || text;
+    },
     compareQuery(o1, o2) {
       for (let p in o1) {
         // eslint-disable-next-line no-prototype-builtins
