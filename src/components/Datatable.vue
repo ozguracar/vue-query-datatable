@@ -1,5 +1,6 @@
 <template>
   <div class="table-wrapper">
+    {{ testEl.name }}
     <div class="table-title">
       <h6>{{ opts.title }}</h6>
       <div class="table-filter">
@@ -278,6 +279,7 @@
             </tr>
           </thead>
           <tbody>
+            <slot name="before-tr" :row="row" :index="index"></slot>
             <tr v-for="(row, index) in getRows" :key="row[opts.rowId]">
               <td
                 v-for="(value, keyName) in getHeads"
@@ -292,6 +294,7 @@
                 >
               </td>
             </tr>
+            <slot name="after-tr" :row="row" :index="index"></slot>
           </tbody>
         </table>
         <div v-else class="text-center table-blank">
@@ -474,6 +477,7 @@ export default {
       undoQuery: null,
       opts: {},
       query: { ...this.$route.query },
+      testEl: {},
     };
   },
   computed: {
@@ -680,6 +684,13 @@ export default {
         }
       },
     },
+    testEl: {
+      deep: true,
+      immediate: true,
+      handler(val) {
+        console.log(JSON.stringify(val));
+      },
+    },
     query: {
       deep: true,
       immediate: true,
@@ -719,6 +730,7 @@ export default {
     },
   },
   created() {
+    this.testEl.name = "raca";
     this.setOpts();
     Object.entries(this.opts.defaults).forEach(([key, value]) => {
       if (value && typeof value === "object") {
