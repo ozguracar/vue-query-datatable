@@ -1,6 +1,5 @@
 <template>
   <div class="table-wrapper">
-    {{ testEl.name }}
     <div class="table-title">
       <h6>{{ opts.title }}</h6>
       <div class="table-filter">
@@ -477,7 +476,6 @@ export default {
       undoQuery: null,
       opts: {},
       query: { ...this.$route.query },
-      testEl: {},
     };
   },
   computed: {
@@ -684,13 +682,6 @@ export default {
         }
       },
     },
-    testEl: {
-      deep: true,
-      immediate: true,
-      handler(val) {
-        console.log(JSON.stringify(val));
-      },
-    },
     query: {
       deep: true,
       immediate: true,
@@ -730,7 +721,6 @@ export default {
     },
   },
   created() {
-    this.testEl.name = "raca";
     this.setOpts();
     Object.entries(this.opts.defaults).forEach(([key, value]) => {
       if (value && typeof value === "object") {
