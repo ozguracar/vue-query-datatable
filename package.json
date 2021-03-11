@@ -1,6 +1,6 @@
 {
   "name": "vue-query-datatable",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "Simple route-driven data management plugin powered by Vue.",
   "author": {
     "name": "Ozgur Acar",
@@ -15,7 +15,7 @@
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
-    "build-library": "vue-cli-service build --target lib --name vue-query-datatable ./src/install.js"
+    "build:library": "vue-cli-service build --target lib --name vue-query-datatable ./src/install.js"
   },
   "files": [
     "dist"

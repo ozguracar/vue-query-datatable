@@ -200,16 +200,11 @@
               </li>
             </ul>
           </li>
-          <li
-            v-if="opts.visibility.search"
-            @mouseover="search = true"
-            @mouseleave="!searchText ? (search = false) : ''"
-            class="search-box"
-          >
+          <li v-if="opts.visibility.search" class="search-box">
             <button v-if="!search" class="button-item" @click="search = true">
               {{ locale("Search") }} <i class="ri-search-line"></i>
             </button>
-            <div v-if="search" class="search">
+            <div v-else class="search">
               <input
                 v-model="searchText"
                 type="text"
@@ -278,7 +273,7 @@
             </tr>
           </thead>
           <tbody>
-            <slot name="before-tr" :row="row" :index="index"></slot>
+            <slot name="before-tr"></slot>
             <tr v-for="(row, index) in getRows" :key="row[opts.rowId]">
               <td
                 v-for="(value, keyName) in getHeads"
@@ -293,7 +288,7 @@
                 >
               </td>
             </tr>
-            <slot name="after-tr" :row="row" :index="index"></slot>
+            <slot name="after-tr"></slot>
           </tbody>
         </table>
         <div v-else class="text-center table-blank">
@@ -735,6 +730,18 @@ export default {
         this[key] = value;
       }
     });
+    if (!this.firstTime) {
+      Object.entries({ ...this.$route.query, ...this.query }).forEach(
+        ([key, value]) => {
+          if (!this.query[key]) {
+            this.pushQuery(key, value, false);
+          }
+        }
+      );
+    }
+    setTimeout(() => {
+      this.firstTime = true;
+    }, 2000);
   },
   methods: {
     locale(text) {
