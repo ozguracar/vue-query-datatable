@@ -22,7 +22,7 @@
             </button>
           </li> -->
           <li v-if="opts.visibility.resetButton">
-            <button class="button-item" @click="reset">
+            <button class="button-item" @click="reset(true)">
               {{ locale("Reset") }} <i class="ri-refresh-line"></i>
             </button>
           </li>
@@ -361,8 +361,6 @@ class IWorkBook {
   }
 }
 export default {
-  name: "Index",
-  auth: "guest",
   components: { Loader, DatePicker },
   props: {
     data: {
@@ -469,11 +467,34 @@ export default {
         },
       },
       undoQuery: null,
+      customQuery: {},
       opts: {},
-      query: { ...this.$route.query },
     };
   },
   computed: {
+    query() {
+      const pre = this.opts.queryPrefix;
+      const obj = {};
+      obj[`${pre}-page`] = this.page;
+      obj[`${pre}-shownRow`] = this.shownRow;
+      if (this.searchText) {
+        obj[`${pre}-search`] = this.searchText;
+      }
+      if (this.range.start) {
+        obj[`${pre}-startDate`] = this.range.start;
+      }
+
+      if (this.range.end) {
+        obj[`${pre}-endDate`] = this.range.end;
+      }
+
+      if (this.sort.key) {
+        obj[`${pre}-sort`] = this.sort.key;
+        obj[`${pre}-sortType`] = this.sort.type ? this.sort.type : "asc";
+      }
+
+      return obj;
+    },
     getFilterStatus() {
       const l = Object.keys(this.opts.heads).length;
       const h = Object.keys(this.getHeads).length;
@@ -622,11 +643,7 @@ export default {
       }
     },
     shownRow(val, oldVal) {
-      this.pushQuery("shownRow", val);
       this.page = Math.floor((oldVal * (this.page - 1)) / val) + 1;
-    },
-    page(val) {
-      this.pushQuery("page", val);
     },
     searchText(val) {
       if (this.opts.customSearch) {
@@ -634,7 +651,6 @@ export default {
           this.$emit("search", val);
         }
       } else if (!this.opts.searchWithButton) {
-        this.pushQuery("search", val);
         this.page = 1;
       }
     },
@@ -653,27 +669,8 @@ export default {
       deep: true,
       immediate: true,
       handler(val) {
-        if (!val.start || !val.end) {
-          this.removeQuery("startDate");
-          this.removeQuery("endDate");
-        } else {
-          this.pushQuery("startDate", val.start);
-
-          this.pushQuery("endDate", val.end);
+        if (!(!val.start || !val.end)) {
           this.page = 1;
-        }
-      },
-    },
-    sort: {
-      deep: true,
-      immediate: true,
-      handler(val) {
-        if (!val.key) {
-          this.removeQuery("sort");
-          this.removeQuery("sortType");
-        } else {
-          this.pushQuery("sort", val.key);
-          this.pushQuery("sortType", val.type ? val.type : "asc");
         }
       },
     },
@@ -681,69 +678,59 @@ export default {
       deep: true,
       immediate: true,
       handler() {
-        if (this.compareQuery(this.$route.query, this.query)) {
-          return;
-        }
-        if (this.timeout) {
-          clearTimeout(this.timeout);
-        }
-        this.reload();
-        this.timeout = setTimeout(() => {
-          if (this.firstTime) {
-            const query = { ...this.$route.query, ...this.query };
-            this.$router.push({
-              query,
-            });
-            Object.entries(query).forEach(([key, value]) => {
-              if (!this.query[key]) {
-                this.pushQuery(key, value, false);
-              }
-            });
-            this.$emit("refresh", query);
-          } else {
-            this.firstTime = true;
-          }
-        }, 250);
+        this.changeQuery();
       },
     },
-
-    options: {
+    customQuery: {
       deep: true,
       immediate: true,
       handler() {
-        this.setOpts();
+        this.changeQuery();
       },
     },
   },
   created() {
-    this.setOpts();
-    Object.entries(this.opts.defaults).forEach(([key, value]) => {
-      if (value && typeof value === "object") {
-        Object.entries(value).forEach(([key2, value2]) => {
-          if (this[key][key2] != value2) {
-            this[key][key2] = value2;
-          }
-        });
-        return;
-      }
-      if (this[key] != value) {
-        this[key] = value;
-      }
-    });
-    if (!this.firstTime) {
-      Object.entries({ ...this.$route.query, ...this.query }).forEach(
-        ([key, value]) => {
-          if (!this.query[key]) {
-            this.pushQuery(key, value, false);
-          }
-        }
-      );
-    }
+    this.load = false;
+    this.reset();
     setTimeout(() => {
-      this.firstTime = true;
+      this.load = true;
     }, 2000);
   },
   methods: {
+    changeQuery() {
+      if (!this.load) return;
+      if (
+        this.compareQuery(this.$route.query, {
+          ...this.query,
+          ...this.customQuery,
+        })
+      ) {
+        return;
+      }
+      if (this.timeout) {
+        clearTimeout(this.timeout);
+      }
+      this.timeout = setTimeout(() => {
+        const routeQuery = {};
+        Object.entries(this.$route.query).forEach(([key, value]) => {
+          if (
+            !key.startsWith(this.opts.queryPrefix + "-") &&
+            !this.opts.customFilter.find((x) => x.key === key)
+          ) {
+            routeQuery[key] = value;
+          }
+        });
+        const query = {
+          ...this.routeQuery,
+          ...this.query,
+          ...this.customQuery,
+        };
+        this.$router.push({
+          query,
+        });
+        this.$emit("refresh", query);
+      }, 250);
+    },
     locale(text) {
       return this.texts[text] || text;
     },
@@ -827,43 +814,6 @@ export default {
         name + ".xlsx"
       );
     },
-    setOpts() {
-      const opts = JSON.parse(
-        JSON.stringify({
-          ...this.defaultOptions,
-          ...this.options,
-          visibility: {
-            ...this.defaultOptions.visibility,
-            ...this.options.visibility,
-          },
-          exportExcel: {
-            ...this.defaultOptions.exportExcel,
-            ...this.options.exportExcel,
-          },
-          defaults: {
-            ...this.defaultOptions.defaults,
-            ...this.options.defaults,
-            range: {
-              ...this.defaultOptions.defaults.range,
-              ...this.options.defaults.range,
-            },
-            sort: {
-              ...this.defaultOptions.defaults.sort,
-              ...this.options.defaults.sort,
-            },
-          },
-        })
-      );
-      opts.customFilter.forEach((element) => {
-        element.selected = null;
-      });
-      this.opts = opts;
-      this.opts.customFilter.forEach((element) => {
-        if (this.query[element.key]) {
-          element.selected = this.query[element.key];
-        }
-      });
-    },
     sortTable(name) {
       if (this.sort.key === name) {
         if (this.sort.step === 2) {
@@ -908,145 +858,168 @@ export default {
     closeSearch() {
       this.searchText = null;
       this.search = false;
-      this.removeQuery("search");
     },
     setSearch() {
       if (this.opts.customSearch) {
         this.$emit("search", this.searchText);
-      } else if (this.searchText !== this.query.search) {
-        this.pushQuery("search", this.searchText);
       }
-    },
-    reload() {
-      const query = {};
-      Object.keys(this.query).forEach((el) => {
-        if (el.startsWith(this.opts.queryPrefix + "-")) {
-          query[
-            el.substring((this.opts.queryPrefix + "-").length)
-          ] = this.query[el];
-        }
-      });
-      if (
-        query.shownRow &&
-        this.opts.shownRowNumbers.includes(Number(query.shownRow))
-      ) {
-        if (this.shownRow !== Number(query.shownRow)) {
-          this.shownRow = Number(query.shownRow);
-        }
-      } else {
-        this.shownRow = Math.min(...this.opts.shownRowNumbers);
-      }
-      if (query.page && Number(query.page) <= this.totalPages) {
-        if (this.page !== Number(query.page)) {
-          this.page = Number(query.page);
-        }
-      } else {
-        this.page = 1;
-      }
-      if (query.startDate) {
-        if (this.range.start !== Number(query.startDate)) {
-          this.range.start = +query.startDate;
-        }
-      }
-      if (query.endDate) {
-        if (this.range.end !== Number(query.endDate)) {
-          this.range.end = +query.endDate;
-        }
-      }
-      if (query.sort) {
-        if (this.sort.key !== query.sort) {
-          if (
-            !this.opts.heads[query.sort] ||
-            !this.opts.heads[query.sort].sortable
-          ) {
-            this.removeQuery("sort");
-            this.removeQuery("sortType");
-          } else {
-            this.sort = {
-              key: query.sort,
-              type: query.sortType ? query.sortType : "asc",
-              step: 1,
-            };
-          }
-        }
-      }
-      if (query.search) {
-        this.searchText = query.search;
-        this.search = true;
-      } else if (this.searchText) {
-        this.search = true;
-      }
-      this.opts.customFilter.forEach((element) => {
-        if (!this.query[element.key]) {
-          element.selected = null;
-        } else {
-          element.selected = this.query[element.key];
-        }
-      });
     },
     undo() {
-      Object.keys(this.query).forEach((element) => {
-        if (
-          element.startsWith(this.opts.queryPrefix + "-") ||
-          this.opts.customFilter.find((x) => x.key === element)
-        ) {
-          this.query[element] = undefined;
-        }
-      });
+      const pre = this.opts.queryPrefix;
+      if (this.undoQuery[`${pre}-page`]) {
+        this.page = this.undoQuery[`${pre}-page`];
+      }
+      if (this.undoQuery[`${pre}-shownRow`]) {
+        this.shownRow = this.undoQuery[`${pre}-shownRow`];
+      }
+      if (this.undoQuery[`${pre}-search`]) {
+        this.searchText = this.undoQuery[`${pre}-search`];
+      }
+      if (this.undoQuery[`${pre}-startDate`]) {
+        this.range.start = this.undoQuery[`${pre}-startDate`];
+      }
+      if (this.undoQuery[`${pre}-endDate`]) {
+        this.range.end = this.undoQuery[`${pre}-endDate`];
+      }
+      if (this.undoQuery[`${pre}-sort`]) {
+        this.sort.key = this.undoQuery[`${pre}-sort`];
+        this.sort.type = this.undoQuery[`${pre}-sortType`]
+          ? this.undoQuery[`${pre}-sortType`]
+          : "asc";
+        this.sort.step = 1;
+      }
       Object.entries(this.undoQuery).forEach(([key, value]) => {
-        this.pushQuery(key, value, false);
+        if (
+          !key.startsWith(pre + "-") &&
+          this.opts.customFilter.find((x) => x.key === key)
+        ) {
+          this.$set(this.customQuery, key, value);
+        }
       });
       this.undoQuery = null;
     },
-    reset() {
-      this.undoQuery = { ...this.query };
-      Object.keys(this.query).forEach((element) => {
-        if (
-          element.startsWith(this.opts.queryPrefix + "-") ||
-          this.opts.customFilter.find((x) => x.key === element)
-        ) {
-          this.query[element] = undefined;
+    reset(status) {
+      if (this.load && status) {
+        this.undoQuery = {
+          ...this.$route.query,
+          ...this.query,
+          ...this.customQuery,
+        };
+      }
+      this.searchText = null;
+      this.page = 1;
+      this.selectedDate = null;
+      this.range = {
+        start: null,
+        end: null,
+      };
+      this.sort = {
+        key: null,
+        type: null,
+        step: 0,
+      };
+      this.customQuery = {};
+      const opts = JSON.parse(
+        JSON.stringify({
+          ...this.defaultOptions,
+          ...this.options,
+          visibility: {
+            ...this.defaultOptions.visibility,
+            ...this.options.visibility,
+          },
+          exportExcel: {
+            ...this.defaultOptions.exportExcel,
+            ...this.options.exportExcel,
+          },
+          defaults: {
+            ...this.defaultOptions.defaults,
+            ...this.options.defaults,
+            range: {
+              ...this.defaultOptions.defaults.range,
+              ...this.options.defaults.range,
+            },
+            sort: {
+              ...this.defaultOptions.defaults.sort,
+              ...this.options.defaults.sort,
+            },
+          },
+        })
+      );
+      opts.customFilter.forEach((element) => {
+        element.selected = null;
+      });
+      this.opts = opts;
+      this.opts.customFilter.forEach((element) => {
+        if (this.customQuery[element.key]) {
+          element.selected = this.customQuery[element.key];
         }
       });
+      Object.entries(this.opts.defaults).forEach(([key, value]) => {
+        if (value && typeof value === "object") {
+          Object.entries(value).forEach(([key2, value2]) => {
+            if (this[key][key2] != value2) {
+              this[key][key2] = value2;
+            }
+          });
+          return;
+        }
+        if (this[key] != value) {
+          this[key] = value;
+        }
+      });
+      if (!status) {
+        const pre = this.opts.queryPrefix;
+        if (this.$route.query[`${pre}-page`]) {
+          this.page = Number(this.$route.query[`${pre}-page`]);
+        }
+        if (this.$route.query[`${pre}-shownRow`]) {
+          this.shownRow = Number(this.$route.query[`${pre}-shownRow`]);
+        }
+        if (this.$route.query[`${pre}-search`]) {
+          this.searchText = this.$route.query[`${pre}-search`];
+        }
+        if (this.$route.query[`${pre}-startDate`]) {
+          this.range.start = Number(this.$route.query[`${pre}-startDate`]);
+        }
+        if (this.$route.query[`${pre}-endDate`]) {
+          this.range.end = Number(this.$route.query[`${pre}-endDate`]);
+        }
+        if (this.$route.query[`${pre}-sort`]) {
+          this.sort.key = this.$route.query[`${pre}-sort`];
+          this.sort.type = this.$route.query[`${pre}-sortType`]
+            ? this.$route.query[`${pre}-sortType`]
+            : "asc";
+          this.sort.step = 1;
+        }
+        Object.entries(this.$route.query).forEach(([key, value]) => {
+          if (
+            !key.startsWith(pre + "-") &&
+            this.opts.customFilter.find((x) => x.key === key)
+          ) {
+            this.$set(this.customQuery, key, value);
+          }
+        });
+      }
     },
     setCustomFilter(custom, value) {
-      if (this.query[custom.key]) {
-        if (this.query[custom.key] === value.key) {
+      if (this.customQuery[custom.key]) {
+        if (this.customQuery[custom.key] === value.key) {
           custom.selected = null;
-          this.removeQuery(custom.key, false);
+          this.customQuery[custom.key] = undefined;
         } else {
           custom.selected = value.key;
-          this.pushQuery(custom.key, value.key, false);
+          this.customQuery[custom.key] = value.key;
         }
       } else {
         custom.selected = value.key;
-        this.pushQuery(custom.key, value.key, false);
+        this.$set(this.customQuery, custom.key, value.key);
       }
     },
-    pushQuery(name, value, prefix = true) {
-      // eslint-disable-next-line eqeqeq
-      if (this.query[this.opts.queryPrefix + "-" + name] == value) {
-        return;
-      }
-      this.$set(
-        this.query,
-        prefix ? this.opts.queryPrefix + "-" + name : name,
-        value
-      );
-      if (name !== "shownRow" && name !== "page") {
-        this.page = 1;
-      }
+    pushQuery(name, value) {
+      this.$set(this.customQuery, name, value);
     },
-    removeQuery(name, prefix = true) {
-      if (!this.query[prefix ? this.opts.queryPrefix + "-" + name : name]) {
-        return;
-      }
-      this.query[
-        prefix ? this.opts.queryPrefix + "-" + name : name
-      ] = undefined;
-      if (name !== "shownRow" && name !== "page") {
-        this.page = 1;
-      }
+    removeQuery(name) {
+      this.customQuery[name] = undefined;
     },
   },
 };
