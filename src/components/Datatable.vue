@@ -677,14 +677,18 @@ export default {
     query: {
       deep: true,
       immediate: true,
-      handler() {
+      handler(val, old) {
+        if (this.opts.customSearch && val["vd-search"] !== old["vd-search"])
+          return;
         this.changeQuery();
       },
     },
     customQuery: {
       deep: true,
       immediate: true,
-      handler() {
+      handler(val, old) {
+        if (this.opts.customSearch && val["vd-search"] !== old["vd-search"])
+          return;
         this.changeQuery();
       },
     },
