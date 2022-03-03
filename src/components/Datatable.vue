@@ -1018,6 +1018,7 @@ export default {
         custom.selected = value.key;
         this.$set(this.customQuery, custom.key, value.key);
       }
+      this.page=1
     },
     pushQuery(name, value) {
       this.$set(this.customQuery, name, value);
